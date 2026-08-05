@@ -229,9 +229,14 @@ function gotoRecord(type) {
       </div>
     </section>
 
-    <!-- STAT CARDS (含动态平衡) ========================== -->
+    <!-- STAT CARDS (含动态平衡) ==========================
+         桌面(≥640):5 张等宽横排。
+         移动端(<640):用 CSS 把 NGrid 强制成 grid-template-columns: 1fr 1fr,
+         第一张跨 1/-1 全宽 = 1+2+2 三行布局。
+         (NGrid 的 cols responsive object 在 2.38 不稳定,改用 CSS !important 覆盖更稳)
+    -->
     <NGrid class="stat-row" :cols="5" :x-gap="12" :y-gap="12" responsive="screen" item-responsive>
-      <NGi span="5 s:1 m:1 l:1">
+      <NGi :span="1">
         <NCard size="small" class="stat-card stat-blue" :bordered="false">
           <div class="stat-icon"><IconMoney /></div>
           <NStatistic :label="`${$t('dashboard.netAssets')} (${base})`" :value="fmtL(fs.netAssets, base)" />
@@ -239,14 +244,14 @@ function gotoRecord(type) {
           <div class="stat-foot">{{ $t('dashboard.investGrowth') }}: {{ investPLTotal >= 0 ? '+' : '' }}{{ fmtL(investPLTotal, base) }}</div>
         </NCard>
       </NGi>
-      <NGi span="5 s:1 m:1 l:1">
+      <NGi :span="1">
         <NCard size="small" class="stat-card stat-gold" :bordered="false">
           <div class="stat-icon"><IconRocket /></div>
           <NStatistic :label="`${$t('dashboard.fireTarget')} (${base})`" :value="fmtL(fs.target, base)" />
           <div class="stat-foot">{{ $t('dashboard.progress') }} {{ fmtPct(fs.progress) }}</div>
         </NCard>
       </NGi>
-      <NGi span="5 s:1 m:1 l:1">
+      <NGi :span="1">
         <NCard size="small" class="stat-card stat-green" :bordered="false">
           <div class="stat-icon">
             <IconTrendUp v-if="incomeTrendIsActive" />
@@ -256,14 +261,14 @@ function gotoRecord(type) {
           <div class="stat-foot">{{ $t('dashboard.activeIncome') }}: {{ fmtL(displayMonth.activeIncome, base) }}</div>
         </NCard>
       </NGi>
-      <NGi span="5 s:1 m:1 l:1">
+      <NGi :span="1">
         <NCard size="small" class="stat-card stat-rose" :bordered="false">
           <div class="stat-icon"><IconExpense /></div>
           <NStatistic :label="`${$t('common.thisMonth')} ${$t('dashboard.totalExpense')}`" :value="fmtL(displayMonth.totalExpense, base)" />
           <div class="stat-foot">{{ $t('dashboard.expenseRatio') }}: {{ displayMonth.totalIncome > 0 ? fmtPct(displayMonth.totalExpense / displayMonth.totalIncome) : '—' }}</div>
         </NCard>
       </NGi>
-      <NGi span="5 s:1 m:1 l:1">
+      <NGi :span="1">
         <NCard size="small" class="stat-card stat-violet" :bordered="false">
           <div class="stat-icon">⚖️</div>
           <NStatistic
@@ -543,11 +548,86 @@ function gotoRecord(type) {
   .hero-meta { gap: 12px; padding-right: 0; }
   .hero-meta-item { font-size: 12px; }
   .hero-meta-divider { height: 28px; }
-  .stat-card :deep(.n-statistic-value__content) { font-size: 22px !important; }
-  .stat-card :deep(.n-card__content) { padding: 14px 14px 10px !important; }
+  /* 移动端适配(≤768px):
+     强行把 NGrid 的 grid-template-columns 改成 2 列(覆盖默认 5 列),
+     第一张(NGi:first-child)跨 1/-1 占整行 = 1+2+2 主+副卡布局:
+       ┌───────────────────────┐
+       │   净资产  ¥257.8万   │  (主卡)
+       ├───────────┬───────────┤
+       │ FIRE目标  │ 本月收入  │
+       ├───────────┼───────────┤
+       │ 本月支出  │ 年被动收益 │  (4 张副卡 2×2)
+       └───────────┴───────────┘
+     数字都可以完整显示(主卡 ~316px 宽,副卡 ~152px 宽)。
+     5 横排硬塞在 326px 里数字物理截字严重,这个布局是极限下的最优解。 */
+  .hero { padding: 14px !important; gap: 14px; border-radius: 12px; }
+  .hero-title { font-size: 1.3rem !important; }
+  .hero-sub { font-size: 13px; }
+  .hero-statement { font-size: 12px; }
+  .hero-meta { gap: 12px; padding-right: 0; }
+  .hero-meta-item { font-size: 12px; }
+  .hero-meta-divider { height: 28px; }
+
+  /* stat-row 1+2+2 布局 */
+  .stat-row {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .stat-row > :first-child {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* 主卡(首张 = 净资产):xs 满宽,接近桌面样式 */
+  .stat-row > :first-child .stat-card :deep(.n-card__content) { padding: 14px !important; }
+  .stat-row > :first-child .stat-card :deep(.n-statistic-value__content) {
+    font-size: 22px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .stat-row > :first-child .stat-card :deep(.n-statistic .n-statistic__label) {
+    font-size: 11px !important;
+  }
+  .stat-row > :first-child .stat-card .stat-icon { width: 28px; height: 28px; top: 10px; right: 10px; }
+  .stat-row > :first-child .stat-card .stat-foot { font-size: 10.5px; margin-top: 4px; }
+
+  /* 副卡(其余 4 张):xs 半宽,紧凑样式,数字/label/foot 全部 nowrap + ellipsis */
+  .stat-row > :not(:first-child) .stat-card :deep(.n-card__content) { padding: 12px 10px 10px !important; }
+  .stat-row > :not(:first-child) .stat-card :deep(.n-statistic-value__content) {
+    font-size: 15px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+  .stat-row > :not(:first-child) .stat-card :deep(.n-statistic .n-statistic__label) {
+    font-size: 10.5px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px !important;
+    line-height: 1.2;
+  }
+  .stat-row > :not(:first-child) .stat-card .stat-icon { width: 22px; height: 22px; top: 6px; right: 6px; }
+  .stat-row > :not(:first-child) .stat-card .stat-foot {
+    display: block !important;
+    font-size: 10px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 4px !important;
+    line-height: 1.2;
+  }
+
   .section { padding: 12px !important; }
   .section-title { font-size: 14px; }
   .bet-mini-list { grid-template-columns: 1fr; }
+}
+
+/* iPhone SE 等 ≤480px 极窄屏:副卡数字再缩一档 */
+@media (max-width: 480px) {
+  .stat-row > :not(:first-child) .stat-card :deep(.n-card__content) { padding: 10px 8px 8px !important; }
+  .stat-row > :not(:first-child) .stat-card :deep(.n-statistic-value__content) { font-size: 14px !important; }
+  .stat-row > :not(:first-child) .stat-card .stat-foot { font-size: 9.5px !important; }
 }
 
 .quick-row { display: flex; flex-wrap: wrap; gap: 10px; }
