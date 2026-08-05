@@ -2,14 +2,20 @@
  * F.I.R.E. 陪跑系统 — Service Worker
  *
  * 策略：
- *   - install: 预缓存 app shell + 关键静态资源（index.html / manifest / 图标 / favicon）
- *   - fetch:   cache-first（命中即返回，未命中走网络再回写缓存），离线时回 index.html
+ *   - install:  预缓存 app shell（离线兜底）
+ *   - fetch:
+ *       * 导航请求（index.html）: network-first
+ *         —— 保证每次部署用户立即拿到新 HTML，新 HTML 引用新 hash 的
+ *            JS/CSS，从而自动加载新版。彻底解决「推了新版手机却看旧版」。
+ *       * 静态资源（JS/CSS/图片）: cache-first
+ *         —— 这些资源构建时带内容 hash，URL 唯一，旧版不会污染新版，安全缓存。
  *   - activate: 清掉旧版本缓存
  *
- * 注意：app 的全部业务数据存在 localStorage，本地依旧可用；SW 只缓存静态资源。
- * Bump CACHE_VERSION 强制全部客户端刷新缓存。
+ * 注意：app 业务数据存在 localStorage，本地依旧可用；SW 只缓存静态资源。
+ * 每次发版若想强制所有客户端刷新，bump CACHE_VERSION 即可（本文件字节变化
+ * 也会触发 SW 重新安装，从而应用新策略）。
  */
-const CACHE_VERSION = 'fire-companion-v1'
+const CACHE_VERSION = 'fire-companion-v2'
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -48,6 +54,23 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url)
   if (url.origin !== self.location.origin) return
 
+  // 导航请求：network-first，确保新部署立即生效
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.status === 200) {
+            const copy = res.clone()
+            caches.open(CACHE_VERSION).then((c) => c.put('./index.html', copy))
+          }
+          return res
+        })
+        .catch(() => caches.match('./index.html'))
+    )
+    return
+  }
+
+  // 静态资源：cache-first（带 hash，URL 唯一，安全）
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached
@@ -60,11 +83,7 @@ self.addEventListener('fetch', (event) => {
           }
           return res
         })
-        .catch(() => {
-          // offline fallback: serve root index for navigation requests
-          if (req.mode === 'navigate') return caches.match('./index.html')
-          return new Response('', { status: 504, statusText: 'offline' })
-        })
+        .catch(() => new Response('', { status: 504, statusText: 'offline' }))
     })
   )
 })
