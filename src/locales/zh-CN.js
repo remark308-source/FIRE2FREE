@@ -15,7 +15,8 @@ export default {
     dailyCons: '需持续记录，怕麻烦的人易中断',
     monthlyCons: '只看总额，看不到钱花在哪（无支出分类）',
     choose: '开始使用',
-    note: '两种模式共用同一套数据，随时可在「设置」中切换。'
+    nicknamePlaceholder: '你的昵称(可选,用于问候)',
+    note: '两种模式共用同一套数据,随时可在「设置」中切换。'
   },
   nav: {
     dashboard: '仪表盘',
@@ -100,6 +101,7 @@ export default {
     summary: '本月速览',
     netAssets: '净资产',
     fireTarget: 'FIRE 目标',
+    fireTargetFoot: '{mo}/月 × 12 × {mul}倍',
     progress: '达成进度',
     eta: '预计达成',
     investPL: '投资盈亏',

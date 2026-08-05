@@ -15,6 +15,7 @@ export default {
     dailyCons: 'Needs consistent logging; easy to drop if busy',
     monthlyCons: 'Totals only — no view of where money went (no breakdown)',
     choose: 'Get Started',
+    nicknamePlaceholder: 'Your nickname (optional, used in greetings)',
     note: 'Both modes share the same data. Switch anytime in Settings.'
   },
   nav: {
@@ -100,6 +101,7 @@ export default {
     summary: 'Monthly Pulse',
     netAssets: 'Net Assets',
     fireTarget: 'FIRE Target',
+    fireTargetFoot: '{mo}/mo × 12 × {mul}x',
     progress: 'Progress',
     eta: 'ETA',
     investPL: 'Investment P/L',

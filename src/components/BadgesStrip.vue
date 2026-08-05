@@ -45,7 +45,11 @@ const earned = computed(() => props.badges.filter((b) => b.unlocked).length)
 .badges-num { font-size: 24px; font-weight: 700; }
 .badges-num .unit { font-size: 14px; opacity: 0.6; }
 .badges-hint { font-size: 11px; opacity: 0.55; max-width: 50%; text-align: right; line-height: 1.4; }
-.badges-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+}
 .badge {
   border-radius: 12px;
   padding: 10px 6px;

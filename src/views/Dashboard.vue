@@ -213,6 +213,7 @@ function gotoRecord(type) {
           :eta="fs.eta"
           :base-currency="base"
           :size="220"
+          class="hero-ring-svg"
         />
       </div>
 
@@ -248,7 +249,7 @@ function gotoRecord(type) {
         <NCard size="small" class="stat-card stat-gold" :bordered="false">
           <div class="stat-icon"><IconRocket /></div>
           <NStatistic :label="`${$t('dashboard.fireTarget')} (${base})`" :value="fmtL(fs.target, base)" />
-          <div class="stat-foot">{{ $t('dashboard.progress') }} {{ fmtPct(fs.progress) }}</div>
+          <div class="stat-foot">{{ $t('dashboard.fireTargetFoot', { mo: fmtL(lastMonth.totalExpense, base), mul: app.profile.fireMultiple }) }}</div>
         </NCard>
       </NGi>
       <NGi :span="1">
@@ -548,6 +549,16 @@ function gotoRecord(type) {
   .hero-meta { gap: 12px; padding-right: 0; }
   .hero-meta-item { font-size: 12px; }
   .hero-meta-divider { height: 28px; }
+  /* 大字水印在手机端缩到 70px,避免占满屏 */
+  .hero::before { font-size: 70px !important; top: -10px !important; right: -10px !important; letter-spacing: 4px !important; }
+  /* 进度环容器 scale 0.7,在 326px 屏上不挤 */
+  .hero-ring-svg { transform: scale(0.7); transform-origin: center center; }
+  /* FIRE 目标卡片脚注(月支出 × 倍数)手机版 nowrap */
+  .stat-card .stat-foot {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   /* 移动端适配(≤768px):
      强行把 NGrid 的 grid-template-columns 改成 2 列(覆盖默认 5 列),
      第一张(NGi:first-child)跨 1/-1 占整行 = 1+2+2 主+副卡布局:

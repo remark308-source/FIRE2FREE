@@ -5,6 +5,7 @@ import {
   NLayout, NLayoutSider, NLayoutContent,
   NMenu, NSpace, NSelect, NText, NConfigProvider,
   NMessageProvider, NDialogProvider, NNotificationProvider,
+  NDrawer, NDrawerContent,
   darkTheme, useOsTheme,
   zhCN, enUS,
   dateZhCN, dateEnUS
@@ -66,6 +67,8 @@ const menuOptions = computed(() => [
 const activeKey = computed(() => route.name)
 function handleMenu(key) {
   router.push({ name: key })
+  // 移动端:点选菜单后自动收起抽屉,让内容区占满全宽
+  if (isMobile.value) mobileDrawerOpen.value = false
 }
 
 const langOptions = computed(() => {
@@ -81,19 +84,38 @@ const themeOptions = computed(() => [
   { label: t('theme.dark'), value: 'dark' }
 ])
 
-// 侧边栏折叠:用户可手动 toggle(show-trigger 触发),初次按窗口宽度默认
-// 窗口 resize 时:小屏(≤768)强制收起(避免 sider 把手机内容压扁),
-// 大屏不强制改(让用户掌控手动 toggle)。
-const collapsed = ref(typeof window !== 'undefined' ? window.innerWidth <= 768 : false)
-function syncCollapsedToViewport() {
-  if (window.innerWidth <= 768) collapsed.value = true
+// ====== 响应式布局:桌面 vs 移动 =================================
+// 桌面:左侧固定 sider(可手动折叠 64px / 展开 232px)。
+// 移动(≤768):**没有持久 sider**,改成抽屉式 —
+//   - 默认完全隐藏(translateX(-100%))
+//   - 右上角汉堡按钮打开,触屏从左侧滑入覆盖整个内容区
+//   - 点击菜单项 → 自动关闭抽屉
+// 优势:内容区永远占满全屏宽度,不再被 64px 侧栏挤压。
+const isMobile = ref(typeof window !== 'undefined' ? window.innerWidth <= 768 : false)
+const mobileDrawerOpen = ref(false)
+const desktopCollapsed = ref(false)
+
+function syncLayout() {
+  const m = window.innerWidth <= 768
+  const was = isMobile.value
+  isMobile.value = m
+  if (was && !m) {
+    // 从移动切到桌面:关闭抽屉(桌面没有抽屉)
+    mobileDrawerOpen.value = false
+  }
+  if (!was && m) {
+    // 从桌面切到移动:确保抽屉关闭,desktopCollapsed 在桌面无意义
+    desktopCollapsed.value = false
+    mobileDrawerOpen.value = false
+  }
 }
+
 onMounted(() => {
-  syncCollapsedToViewport()
-  window.addEventListener('resize', syncCollapsedToViewport)
+  syncLayout()
+  window.addEventListener('resize', syncLayout)
 })
 onUnmounted(() => {
-  window.removeEventListener('resize', syncCollapsedToViewport)
+  window.removeEventListener('resize', syncLayout)
 })
 
 // 全局自动结算自我对赌:应用启动即把达标契约落为 won(数据一致性),
@@ -111,57 +133,124 @@ autoResolve()
         <NDialogProvider>
           <SaveFxLayer />
           <Onboarding v-if="needsOnboarding" />
-          <NLayout v-else has-sider style="height: 100vh">
-            <NLayoutSider
-              bordered
-              :collapsed-width="64"
-              :width="232"
-              v-model:collapsed="collapsed"
-              show-trigger
-              collapse-mode="width"
+          <template v-else>
+            <!-- 汉堡按钮(移动端独占):点开抽屉 -->
+            <button
+              v-if="isMobile"
+              type="button"
+              class="hamburger"
+              :aria-label="t('nav.dashboard')"
+              @click="mobileDrawerOpen = true"
             >
-              <div style="padding: 18px 14px 14px 14px; display: flex; align-items: center; gap: 10px">
-                <FireLogo :size="collapsed ? 36 : 81" :show-wordmark="!collapsed" />
-              </div>
-              <NMenu
-                :value="activeKey"
-                :options="menuOptions"
-                :render-label="(opt) => h('div', { style: 'display:inline-flex;align-items:center;gap:10px' }, [opt.iconRender(), h('span', {}, opt.label)])"
-                @update:value="handleMenu"
-                style="padding-top: 6px"
-              />
-              <div class="sider-foot">
-                <!-- 语系 / 主题切换:两个 NSelect 横向并排(居中+gap),
-                     隐私文字独立一行;浮层 z-index 在 menu-props 显式给以穿透 stacking context。 -->
-                <div class="sider-controls">
-                  <NSelect
-                    size="small"
-                    :value="app.profile.locale"
-                    :options="langOptions"
-                    :menu-props="{ style: 'min-width: 140px; z-index: 9999' }"
-                    @update:value="(v) => app.updateProfile({ locale: v })"
-                  />
-                  <NSelect
-                    size="small"
-                    :value="app.profile.theme"
-                    :options="themeOptions"
-                    :menu-props="{ style: 'min-width: 140px; z-index: 9999' }"
-                    @update:value="(v) => app.updateProfile({ theme: v })"
-                  />
-                </div>
-                <NText depth="3" class="sider-privacy">
-                  🔒 {{ $t('app.privacyFooter') }}
-                </NText>
-              </div>
-            </NLayoutSider>
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="3" y1="6" x2="19" y2="6"/>
+                <line x1="3" y1="11" x2="19" y2="11"/>
+                <line x1="3" y1="16" x2="19" y2="16"/>
+              </svg>
+            </button>
 
-            <NLayout>
-              <!-- 顶部 banner 已移除:页面直接占满视口,不再有 60px 偏移 -->
-              <NLayoutContent content-style="padding: 20px; overflow: auto" style="height: 100vh">
-                <RouterView />
+            <!-- 桌面布局:固定左侧 sider -->
+            <NLayout v-if="!isMobile" has-sider style="height: 100vh">
+              <NLayoutSider
+                bordered
+                :collapsed-width="64"
+                :width="232"
+                v-model:collapsed="desktopCollapsed"
+                show-trigger
+                collapse-mode="width"
+              >
+                <div style="padding: 18px 14px 14px 14px; display: flex; align-items: center; gap: 10px">
+                  <FireLogo :size="desktopCollapsed ? 36 : 81" :show-wordmark="!desktopCollapsed" />
+                </div>
+                <NMenu
+                  :value="activeKey"
+                  :options="menuOptions"
+                  :render-label="(opt) => h('div', { style: 'display:inline-flex;align-items:center;gap:10px' }, [opt.iconRender(), h('span', {}, opt.label)])"
+                  @update:value="handleMenu"
+                  style="padding-top: 6px"
+                />
+                <div class="sider-foot">
+                  <div class="sider-controls">
+                    <NSelect
+                      size="small"
+                      :value="app.profile.locale"
+                      :options="langOptions"
+                      :menu-props="{ style: 'min-width: 140px; z-index: 9999' }"
+                      @update:value="(v) => app.updateProfile({ locale: v })"
+                    />
+                    <NSelect
+                      size="small"
+                      :value="app.profile.theme"
+                      :options="themeOptions"
+                      :menu-props="{ style: 'min-width: 140px; z-index: 9999' }"
+                      @update:value="(v) => app.updateProfile({ theme: v })"
+                    />
+                  </div>
+                  <NText depth="3" class="sider-privacy">
+                    🔒 {{ $t('app.privacyFooter') }}
+                  </NText>
+                </div>
+              </NLayoutSider>
+
+              <NLayout>
+                <NLayoutContent content-style="padding: 20px; overflow: auto" style="height: 100vh">
+                  <RouterView />
+                </NLayoutContent>
+              </NLayout>
+            </NLayout>
+
+            <!-- 移动布局:全宽内容,无持久 sider(抽屉浮层另起) -->
+            <NLayout v-else style="height: 100vh">
+              <NLayoutContent content-style="padding: 0; overflow: auto" style="height: 100vh">
+                <!-- 让出顶部 56px 给汉堡按钮 -->
+                <div class="mobile-content">
+                  <RouterView />
+                </div>
               </NLayoutContent>
             </NLayout>
-          </NLayout>
+
+            <!-- 移动抽屉:从左侧滑入,带遮罩,点选菜单自动关闭 -->
+            <NDrawer
+              v-if="isMobile"
+              v-model:show="mobileDrawerOpen"
+              :width="280"
+              placement="left"
+              :native-scrollbar="false"
+            >
+              <NDrawerContent style="padding: 14px 12px 16px 12px;">
+                <div class="drawer-head">
+                  <FireLogo :size="48" :show-wordmark="true" />
+                </div>
+                <NMenu
+                  :value="activeKey"
+                  :options="menuOptions"
+                  :render-label="(opt) => h('div', { style: 'display:inline-flex;align-items:center;gap:10px' }, [opt.iconRender(), h('span', {}, opt.label)])"
+                  @update:value="handleMenu"
+                />
+                <div class="drawer-foot">
+                  <div class="sider-controls">
+                    <NSelect
+                      size="small"
+                      :value="app.profile.locale"
+                      :options="langOptions"
+                      :menu-props="{ style: 'min-width: 140px; z-index: 9999' }"
+                      @update:value="(v) => app.updateProfile({ locale: v })"
+                    />
+                    <NSelect
+                      size="small"
+                      :value="app.profile.theme"
+                      :options="themeOptions"
+                      :menu-props="{ style: 'min-width: 140px; z-index: 9999' }"
+                      @update:value="(v) => app.updateProfile({ theme: v })"
+                    />
+                  </div>
+                  <NText depth="3" class="sider-privacy">
+                    🔒 {{ $t('app.privacyFooter') }}
+                  </NText>
+                </div>
+              </NDrawerContent>
+            </NDrawer>
+          </template>
         </NDialogProvider>
       </NNotificationProvider>
     </NMessageProvider>
@@ -181,8 +270,7 @@ autoResolve()
 }
 .n-card { transition: transform .15s ease, box-shadow .15s ease; }
 
-/* sider 底部控件栏:整体竖排,内部 .sider-controls 横向并排放两个 select;
-   各 select 仍走 fit-content(不撑满);浮层 z-index 已在 menu-props 显式给。 */
+/* ===== sider 底部控件(桌面 sider / 移动抽屉 都复用这套) ===== */
 .sider-foot {
   position: absolute;
   bottom: 14px;
@@ -191,7 +279,7 @@ autoResolve()
   padding: 0 14px;
   display: flex;
   flex-direction: column;
-  align-items: center;       /* 子层整体水平居中 */
+  align-items: center;
   gap: 6px;
 }
 .sider-controls {
@@ -199,18 +287,17 @@ autoResolve()
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 8px;                  /* 两 select 之间间距 */
-  flex-wrap: wrap;           /* 极窄时换行,避免溢出 */
+  gap: 8px;
+  flex-wrap: wrap;
 }
-.sider-foot .n-select {
-  width: fit-content;        /* 跟随内容宽度,避免空荡拉伸 */
-  min-width: 0;
-}
+.sider-foot .n-select,
+.drawer-foot .n-select { width: fit-content; min-width: 0; }
 .sider-foot .n-base-selection .n-base-selection-label,
-.sider-foot .n-base-selection .n-base-selection-input__content {
-  text-align: center;        /* 选中文字水平居中 */
-}
-.sider-foot .sider-privacy { text-align: center; }
+.sider-foot .n-base-selection .n-base-selection-input__content,
+.drawer-foot .n-base-selection .n-base-selection-label,
+.drawer-foot .n-base-selection .n-base-selection-input__content { text-align: center; }
+.sider-foot .sider-privacy,
+.drawer-foot .sider-privacy { text-align: center; }
 .sider-privacy {
   font-size: 10px;
   line-height: 1.5;
@@ -218,15 +305,38 @@ autoResolve()
   margin-top: 4px;
 }
 
-/* ====== 移动端适配(≤768px):让手机端排版正常 ======
-   关键点:
-   - sider 默认 64px(由 collapsed 双向绑定 + resize 监听保证)
-   - 内容区 / 卡片 padding 收紧(腾出水平空间)
-   - 数字 / 标题字号缩小(避免 ¥ 大数溢出)
-   - ECharts 容器防溢出
-   Dashboard 自身的 .hero/.hero-title 等由它自己 <style scoped> 末尾的媒体查询覆盖。 */
+/* ===== 移动抽屉内部布局(drawer-foot 不再 absolute,改为普通块) ===== */
+.drawer-head { padding: 4px 8px 14px 8px; display: flex; align-items: center; gap: 10px; }
+.drawer-foot { margin-top: 18px; padding: 0 4px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+/* ===== 汉堡按钮(移动端独占):浮在内容顶部左上,z-index 高于内容 ===== */
+.hamburger {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 900;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(125, 125, 140, 0.25);
+  background: rgba(20, 20, 30, 0.85);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+.hamburger:active { transform: scale(0.94); background: rgba(40, 40, 55, 0.95); }
+
+/* 移动端内容区:让出顶部 56px 给汉堡,左右收紧 */
+.mobile-content { padding: 56px 12px 12px 12px; }
+
+/* ===== 移动端适配(≤768px)全局收尾 ===== */
 @media (max-width: 768px) {
-  .n-layout-content { padding: 12px !important; }
   .n-card { padding: 12px !important; }
   .n-statistic .n-statistic-value { font-size: 1.4rem !important; }
   .echarts-wrap,

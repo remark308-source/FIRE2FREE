@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
@@ -14,8 +14,9 @@ onMounted(() => {
   if (app.profile.entryMode) router.replace('/dashboard')
 })
 
+const nickname = ref(app.profile.name || '')
 function choose(mode) {
-  app.updateProfile({ entryMode: mode })
+  app.updateProfile({ entryMode: mode, name: nickname.value.trim() })
   router.replace('/dashboard')
 }
 </script>
@@ -25,6 +26,17 @@ function choose(mode) {
     <div class="ob-logo"><FireLogo :size="84" :show-wordmark="true" /></div>
     <h1 class="ob-title">{{ t('onboarding.title') }}</h1>
     <p class="ob-note">{{ t('onboarding.note') }}</p>
+
+    <div class="ob-nick">
+      <input
+        v-model="nickname"
+        :placeholder="t('onboarding.nicknamePlaceholder')"
+        class="ob-nick-input"
+        maxlength="20"
+        autocomplete="off"
+        spellcheck="false"
+      />
+    </div>
 
     <div class="ob-cards">
       <div class="ob-card ob-daily" @click="choose('daily')">
@@ -114,6 +126,26 @@ function choose(mode) {
   background: linear-gradient(135deg, #ff8a3d 0%, #e9533b 100%);
 }
 .ob-monthly .ob-btn { background: linear-gradient(135deg, #18a058 0%, #36ad6a 100%); }
+/* 昵称输入(可选):让首次用户能给自己起个称呼,用于 Dashboard 问候 */
+.ob-nick { width: 100%; max-width: 360px; }
+.ob-nick-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(125, 125, 140, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 15px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ob-nick-input::placeholder { color: rgba(255, 255, 255, 0.4); }
+.ob-nick-input:focus {
+  border-color: rgba(255, 138, 61, 0.6);
+  background: rgba(255, 255, 255, 0.08);
+}
 @media (max-width: 640px) {
   .ob-cards { grid-template-columns: 1fr; }
 }
