@@ -1,0 +1,46 @@
+# dependencies
+node_modules/
+
+# build output (CI builds fresh, never commit)
+dist/
+dist_verify/
+out_verify/
+.vite/
+
+# verification / debug scratch (never ship)
+.preview/
+.workbuddy/
+verify_*/
+publish_build*/
+out_verify_*/
+_distclean.txt
+_*.py
+_*.txt
+vite.config.js.timestamp-*.mjs
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# env
+.env
+.env.*
+!.env.example
+
+# dev-time internal docs (not product-facing)
+DIVERSITY_INCLUSION_AUDIT.md
+方案架构.md
+选型决策分析.md
