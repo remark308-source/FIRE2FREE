@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, h } from 'vue'
+import { ref, computed, h, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute, RouterView } from 'vue-router'
 import {
   NLayout, NLayoutSider, NLayoutContent,
@@ -82,8 +82,19 @@ const themeOptions = computed(() => [
 ])
 
 // 侧边栏折叠:用户可手动 toggle(show-trigger 触发),初次按窗口宽度默认
-// 窗口 resize 时不强制改,让用户掌控折叠状态
-const collapsed = ref(typeof window !== 'undefined' ? window.innerWidth < 768 : false)
+// 窗口 resize 时:小屏(≤768)强制收起(避免 sider 把手机内容压扁),
+// 大屏不强制改(让用户掌控手动 toggle)。
+const collapsed = ref(typeof window !== 'undefined' ? window.innerWidth <= 768 : false)
+function syncCollapsedToViewport() {
+  if (window.innerWidth <= 768) collapsed.value = true
+}
+onMounted(() => {
+  syncCollapsedToViewport()
+  window.addEventListener('resize', syncCollapsedToViewport)
+})
+onUnmounted(() => {
+  window.removeEventListener('resize', syncCollapsedToViewport)
+})
 
 // 全局自动结算自我对赌:应用启动即把达标契约落为 won(数据一致性),
 // 新赢的 id 暂存到 sessionWins,Bets 页挂载时取走弹庆祝(避免漏庆祝)。
@@ -205,6 +216,26 @@ autoResolve()
   line-height: 1.5;
   display: block;
   margin-top: 4px;
+}
+
+/* ====== 移动端适配(≤768px):让手机端排版正常 ======
+   关键点:
+   - sider 默认 64px(由 collapsed 双向绑定 + resize 监听保证)
+   - 内容区 / 卡片 padding 收紧(腾出水平空间)
+   - 数字 / 标题字号缩小(避免 ¥ 大数溢出)
+   - ECharts 容器防溢出
+   Dashboard 自身的 .hero/.hero-title 等由它自己 <style scoped> 末尾的媒体查询覆盖。 */
+@media (max-width: 768px) {
+  .n-layout-content { padding: 12px !important; }
+  .n-card { padding: 12px !important; }
+  .n-statistic .n-statistic-value { font-size: 1.4rem !important; }
+  .echarts-wrap,
+  .chart-box,
+  .n-card :deep(.echarts),
+  .n-card :deep(canvas) {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
 }
 
 /* 新录入行高亮闪动(NDataTable rowProps 注入 class) */

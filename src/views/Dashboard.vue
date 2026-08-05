@@ -532,6 +532,24 @@ function gotoRecord(type) {
   .charts-grid, .charts-grid.two-cols { grid-template-columns: 1fr; }
 }
 
+/* 移动端适配(≤768px):sider 已自动收起(App.vue 监听 resize),
+   这里进一步压缩 hero / stat-card / section 的内边距与字号,
+   并把 bet-mini-list 改为单列避免横向溢出。 */
+@media (max-width: 768px) {
+  .hero { padding: 14px !important; gap: 14px; border-radius: 12px; }
+  .hero-title { font-size: 1.3rem !important; }
+  .hero-sub { font-size: 13px; }
+  .hero-statement { font-size: 12px; }
+  .hero-meta { gap: 12px; padding-right: 0; }
+  .hero-meta-item { font-size: 12px; }
+  .hero-meta-divider { height: 28px; }
+  .stat-card :deep(.n-statistic-value__content) { font-size: 22px !important; }
+  .stat-card :deep(.n-card__content) { padding: 14px 14px 10px !important; }
+  .section { padding: 12px !important; }
+  .section-title { font-size: 14px; }
+  .bet-mini-list { grid-template-columns: 1fr; }
+}
+
 .quick-row { display: flex; flex-wrap: wrap; gap: 10px; }
 .qa-btn { padding: 6px 18px; font-weight: 600; }
 

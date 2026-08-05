@@ -7,6 +7,9 @@ dist_verify/
 out_verify/
 .vite/
 
+# Gitee Pages 部署产物(独立仓库,不进源码库)
+gitee_ver/
+
 # verification / debug scratch (never ship)
 .preview/
 .workbuddy/
