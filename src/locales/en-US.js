@@ -28,7 +28,8 @@ export default {
     reminders: 'Reminders',
     bets: 'Commitment',
     report: 'Monthly Report',
-    settings: 'Settings'
+    settings: 'Settings',
+    more: 'More'
   },
   common: {
     save: 'Save',
@@ -301,6 +302,14 @@ export default {
     newBadge: 'New win',
     celebrateTitle: '🎉 Contract achieved!',
     celebrateBody: 'You just hit the goal on {n} contract(s). Keep the momentum going!'
+  },
+  quick: {
+    title: 'Add Record',
+    expense: 'Expense',
+    income: 'Income',
+    pickCategory: 'Pick a category',
+    monthTotal: 'This month total',
+    addHint: 'Enter amount and pick a category'
   },
   theme: { system: 'System', light: 'Light', dark: 'Dark' },
   lang: { zh: '中文', en: 'English' }

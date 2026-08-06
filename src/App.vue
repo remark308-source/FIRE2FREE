@@ -24,6 +24,7 @@ import IconBet from '@/components/icons/IconBet.vue'
 import IconLine from '@/components/icons/IconLine.vue'
 import IconSettings from '@/components/icons/IconSettings.vue'
 import SaveFxLayer from '@/components/SaveFxLayer.vue'
+import QuickEntrySheet from '@/components/QuickEntrySheet.vue'
 import Onboarding from '@/views/Onboarding.vue'
 import { useContracts } from '@/composables/contracts'
 
@@ -69,6 +70,19 @@ function handleMenu(key) {
   router.push({ name: key })
   // 移动端:点选菜单后自动收起抽屉,让内容区占满全宽
   if (isMobile.value) mobileDrawerOpen.value = false
+}
+
+// ====== 移动端底部 Tab 栏(参考 MoneyFlow 的顺手导航) ======
+// 4 个主入口:仪表盘 / 收入 / 支出 / 更多(打开全功能抽屉)。
+// 悬浮 + 按钮「记一笔」一步呼起底部录入抽屉,强化核心记账流程。
+const quickOpen = ref(false)
+const primaryTabs = ['dashboard', 'income', 'expense']
+const moreActive = computed(() => !primaryTabs.includes(activeKey.value))
+function goTab(key) {
+  router.push({ name: key })
+}
+function openMore() {
+  mobileDrawerOpen.value = true
 }
 
 const langOptions = computed(() => {
@@ -127,28 +141,13 @@ autoResolve()
 </script>
 
 <template>
-  <NConfigProvider :theme="theme" :locale="naiveLocale" :date-locale="naiveDateLocale">
+  <NConfigProvider :theme="theme" :locale="naiveLocale" :date-locale="naiveDateLocale" :class="theme ? 'theme-dark' : 'theme-light'">
     <NMessageProvider>
       <NNotificationProvider>
         <NDialogProvider>
           <SaveFxLayer />
           <Onboarding v-if="needsOnboarding" />
           <template v-else>
-            <!-- 汉堡按钮(移动端独占):点开抽屉 -->
-            <button
-              v-if="isMobile"
-              type="button"
-              class="hamburger"
-              :aria-label="t('nav.dashboard')"
-              @click="mobileDrawerOpen = true"
-            >
-              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <line x1="3" y1="6" x2="19" y2="6"/>
-                <line x1="3" y1="11" x2="19" y2="11"/>
-                <line x1="3" y1="16" x2="19" y2="16"/>
-              </svg>
-            </button>
-
             <!-- 桌面布局:固定左侧 sider -->
             <NLayout v-if="!isMobile" has-sider style="height: 100vh">
               <NLayoutSider
@@ -200,14 +199,43 @@ autoResolve()
             </NLayout>
 
             <!-- 移动布局:全宽内容,无持久 sider(抽屉浮层另起) -->
-            <NLayout v-else style="height: 100vh">
-              <NLayoutContent content-style="padding: 0; overflow: auto" style="height: 100vh">
-                <!-- 让出顶部 56px 给汉堡按钮 -->
-                <div class="mobile-content">
-                  <RouterView />
-                </div>
-              </NLayoutContent>
-            </NLayout>
+            <template v-else>
+              <NLayout style="height: 100vh">
+                <NLayoutContent content-style="padding: 0; overflow: auto" style="height: 100vh">
+                  <div class="mobile-content">
+                    <RouterView />
+                  </div>
+                </NLayoutContent>
+              </NLayout>
+
+              <!-- 底部 Tab 栏(参考 MoneyFlow 顺手导航) -->
+              <nav class="bottom-nav">
+                <button class="bn-item" :class="{ active: activeKey === 'dashboard' }" type="button" @click="goTab('dashboard')">
+                  <IconDashboard class="bn-ic" />
+                  <span class="bn-label">{{ t('nav.dashboard') }}</span>
+                </button>
+                <button class="bn-item" :class="{ active: activeKey === 'income' }" type="button" @click="goTab('income')">
+                  <IconIncome class="bn-ic" />
+                  <span class="bn-label">{{ t('nav.income') }}</span>
+                </button>
+                <button class="bn-item" :class="{ active: activeKey === 'expense' }" type="button" @click="goTab('expense')">
+                  <IconExpense class="bn-ic" />
+                  <span class="bn-label">{{ t('nav.expense') }}</span>
+                </button>
+                <button class="bn-item" :class="{ active: moreActive }" type="button" @click="openMore">
+                  <svg class="bn-ic" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg>
+                  <span class="bn-label">{{ t('nav.more') }}</span>
+                </button>
+              </nav>
+
+              <!-- 悬浮记账按钮(核心记账流程一步呼起) -->
+              <button class="fab" type="button" :aria-label="t('quick.title')" @click="quickOpen = true">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+
+              <!-- 记一笔 底部抽屉 -->
+              <QuickEntrySheet v-model:show="quickOpen" />
+            </template>
 
             <!-- 移动抽屉:从左侧滑入,带遮罩,点选菜单自动关闭 -->
             <NDrawer
@@ -267,7 +295,22 @@ autoResolve()
   --fire-grad-orange: linear-gradient(135deg, #FFA94D 0%, #FF6B35 100%);
   --fire-grad-violet: linear-gradient(135deg, #312E81 0%, #5B21B6 100%);
   --fire-grad-rose: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+
+  /* 统一字体栈 + 移动端字号阶梯(离线优先,不依赖网络字体) */
+  --ff-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --ff-num: "SF Pro Display", system-ui, -apple-system, "Roboto", sans-serif;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 14px;
+  --fs-md: 16px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  /* 底部 Tab 栏高度(含安全区) */
+  --bn-h: calc(58px + env(safe-area-inset-bottom));
+  /* 记一笔抽屉默认深色文字(浅色主题由组件内 .qs-light 覆盖) */
+  --qs-text: #e6e8f0;
 }
+* { font-family: var(--ff-font); }
 .n-card { transition: transform .15s ease, box-shadow .15s ease; }
 
 /* ===== sider 底部控件(桌面 sider / 移动抽屉 都复用这套) ===== */
@@ -309,31 +352,85 @@ autoResolve()
 .drawer-head { padding: 4px 8px 14px 8px; display: flex; align-items: center; gap: 10px; }
 .drawer-foot { margin-top: 18px; padding: 0 4px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 
-/* ===== 汉堡按钮(移动端独占):浮在内容顶部左上,z-index 高于内容 ===== */
-.hamburger {
+/* ===== 移动端内容区:顶部避让状态栏安全区,底部避让底部 Tab 栏 ===== */
+.mobile-content {
+  padding: calc(12px + env(safe-area-inset-top)) 12px calc(var(--bn-h) + 12px) 12px;
+}
+
+/* ===== 底部 Tab 栏(参考 MoneyFlow 顺手导航) ===== */
+.bottom-nav {
   position: fixed;
-  top: 12px;
-  left: 12px;
-  z-index: 900;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  border: 1px solid rgba(125, 125, 140, 0.25);
-  background: rgba(20, 20, 30, 0.85);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 800;
+  height: var(--bn-h);
+  display: flex;
+  align-items: stretch;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: rgba(17, 20, 38, 0.92);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(125, 125, 140, 0.18);
+}
+.bn-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: none;
+  background: transparent;
+  color: #8a90a6;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.18s ease, transform 0.1s ease;
+}
+.bn-item:active { transform: scale(0.94); }
+.bn-ic { width: 23px; height: 23px; }
+.bn-label { font-size: var(--fs-xs); font-weight: 500; line-height: 1; }
+.bn-item.active { color: #6ea0ff; }
+/* 激活指示条(渐变下划线,MoneyFlow 风格) */
+.bn-item.active::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--fire-grad-blue);
+}
+
+/* ===== 悬浮记账按钮(核心记账流程一步呼起) ===== */
+.fab {
+  position: fixed;
+  right: 18px;
+  bottom: calc(var(--bn-h) + 14px);
+  z-index: 850;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: var(--fire-grad-blue);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-  transition: transform 0.1s ease, background 0.15s ease;
+  box-shadow: 0 10px 24px -6px rgba(91, 141, 239, 0.6);
+  transition: transform 0.12s ease;
 }
-.hamburger:active { transform: scale(0.94); background: rgba(40, 40, 55, 0.95); }
+.fab:active { transform: scale(0.9); }
 
-/* 移动端内容区:让出顶部 56px 给汉堡,左右收紧 */
-.mobile-content { padding: 56px 12px 12px 12px; }
+/* 卡片点击微反馈(提升触感) */
+.n-card:active { transform: scale(0.99); }
+
+/* 浅色主题:底部栏与 FAB 适配 */
+.theme-light .bottom-nav { background: rgba(255, 255, 255, 0.94); border-top-color: rgba(0, 0, 0, 0.08); }
+.theme-light .bn-item { color: #7a8098; }
+.theme-light .bn-item.active { color: #3b6fe0; }
+.theme-light .fab { box-shadow: 0 10px 24px -6px rgba(91, 141, 239, 0.4); }
 
 /* ===== 移动端适配(≤768px)全局收尾 ===== */
 @media (max-width: 768px) {

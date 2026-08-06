@@ -28,7 +28,8 @@ export default {
     reminders: '提醒中心',
     bets: '自我对赌',
     report: '月度报告',
-    settings: '设置'
+    settings: '设置',
+    more: '更多'
   },
   common: {
     save: '保存',
@@ -325,6 +326,14 @@ export default {
     newBadge: '新达成',
     celebrateTitle: '🎉 对赌达成!',
     celebrateBody: '你有 {n} 个契约刚刚达标,继续保持这个势头!'
+  },
+  quick: {
+    title: '记一笔',
+    expense: '支出',
+    income: '收入',
+    pickCategory: '选择分类',
+    monthTotal: '本月总额',
+    addHint: '输入金额并选择分类'
   },
   theme: { system: '跟随系统', light: '日间', dark: '夜间' },
   lang: { zh: '中文', en: 'English' }
