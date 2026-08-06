@@ -287,23 +287,17 @@ function gotoRecord(type) {
     </NGrid>
 
     <!-- QUICK ACTIONS ====================================== -->
-    <!-- 4 项入口 4 列网格(桌面 4 列 / 移动 2×2):
-         原 4 项(记一笔收入/支出/FIRE计算器/提醒中心)删掉 2 个记一笔入口
-         (FAB 替代),换成"对赌"+"报告"凑齐 4 项,
-         跟 5 张主卡(2×2 副卡)对齐,视觉更整齐。 -->
+    <!-- 标题"快捷入口" + FIRE计算器 + 提醒中心 三个元素同一行横排,
+         两个按钮缩成紧凑 chip(图标+文字横排),整体缩一档。 -->
     <section class="section section-quick">
-      <div class="section-head">
-        <div class="section-title">
-          <span>⚡ {{ $t('dashboard.quickActions') }}</span>
-        </div>
-      </div>
-      <div class="quick-row">
+      <div class="quick-bar">
+        <div class="quick-title"><span class="quick-emoji">⚡</span>{{ $t('dashboard.quickActions') }}</div>
         <button class="qa-btn qa-calc" type="button" @click="goTo('calculator')">
-          <IconRocket :size="20" />
+          <IconRocket :size="18" />
           <span class="qa-label">{{ $t('nav.calculator') }}</span>
         </button>
         <button class="qa-btn qa-remind" type="button" @click="goTo('reminders')">
-          <IconReminders :size="20" />
+          <IconReminders :size="18" />
           <span class="qa-label">{{ $t('nav.reminders') }}</span>
         </button>
       </div>
@@ -656,10 +650,11 @@ function gotoRecord(type) {
   .section-title { font-size: 14px; }
   .bet-mini-list { grid-template-columns: 1fr; }
 
-  /* 快捷入口 4 项 2x2 网格(每格 ~150px 宽) */
-  .quick-row { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
-  .qa-btn { padding: 14px 6px !important; gap: 6px !important; }
-  .qa-btn .qa-label { font-size: 12px !important; }
+  /* 快捷入口:窄屏一行(标题 + 2 按钮),缩小字号防挤压 */
+  .quick-bar { gap: 8px !important; }
+  .quick-title { font-size: 13px !important; }
+  .qa-btn { padding: 7px 8px !important; gap: 4px !important; font-size: 11px !important; }
+  .qa-label { font-size: 11px !important; }
 }
 
 /* iPhone SE 等 ≤480px 极窄屏:副卡数字再缩一档 */
@@ -669,29 +664,48 @@ function gotoRecord(type) {
   .stat-row > :not(:first-child) .stat-card .stat-foot { font-size: 9.5px !important; }
 }
 
-/* 快捷入口:4 项 4 列网格(桌面),移动端 2x2 见上面 @media */
-.section-quick { padding: 14px 16px !important; }
-.quick-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-width: 420px; }
-.qa-btn {
+/* 快捷入口:标题 + 两个按钮 同一行横排 */
+.section-quick { padding: 12px 16px !important; }
+.quick-bar {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.quick-title {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.quick-emoji { font-size: 14px; }
+/* 按钮缩一档:横排 icon+文字 的紧凑 chip */
+.qa-btn {
+  flex: 1 1 0;
+  display: inline-flex;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 18px 8px;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 10px;
   border: 1px solid rgba(125,125,140,0.18);
   background: rgba(125,125,140,0.04);
-  border-radius: 12px;
-  font-size: 13px;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
   color: inherit;
-  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.qa-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px -8px rgba(125,125,140,0.3); }
+.qa-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px -8px rgba(125,125,140,0.3); background: rgba(125,125,140,0.08); }
 .qa-btn:active { transform: scale(0.97); }
-.qa-label { font-size: 12.5px; line-height: 1.2; }
+.qa-btn :deep(svg) { flex-shrink: 0; }
+.qa-label { font-size: 12px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; }
 .qa-calc { color: #FF8A3D; }
 .qa-remind { color: #18a058; }
 .qa-bet { color: #7B61FF; }
