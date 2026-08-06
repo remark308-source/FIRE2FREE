@@ -566,7 +566,7 @@ function gotoRecord(type) {
 .hero--desktop .hero-meta { display: flex; align-items: center; gap: 18px; justify-content: flex-end; z-index: 1; padding-right: 6px; }
 .hero--desktop .hero-meta-item { text-align: right; }
 .hero--desktop .hero-meta-label { font-size: 11px; opacity: 0.7; }
-.hero--desktop .hero-meta-val { font-size: 22px; font-weight: 700; margin-top: 2px; }
+.hero--desktop .hero-meta-val { font-size: 16px; font-weight: 700; margin-top: 2px; }  /* 与 .quick-title(14px)同档偏大,平衡水印/标题压扁 */
 .hero--desktop .hero-meta-val--sr { color: #FF8A3D; }
 .hero--desktop .hero-meta-divider { width: 1px; height: 36px; background: rgba(125,125,140,0.3); }
 

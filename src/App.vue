@@ -13,6 +13,9 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 
 import FireLogo from '@/components/icons/FireLogo.vue'
+import IconDashboard from '@/components/icons/IconDashboard.vue'
+import IconIncome from '@/components/icons/IconIncome.vue'
+import IconExpense from '@/components/icons/IconExpense.vue'
 import IconInvest from '@/components/icons/IconInvest.vue'
 import IconCalculator from '@/components/icons/IconCalculator.vue'
 import IconReminders from '@/components/icons/IconReminders.vue'
@@ -352,11 +355,11 @@ autoResolve()
 /* ===== 左上角汉堡按钮:替代原底部「更多」tab,仅移动端渲染 ===== */
 .menu-fab {
   position: fixed;
-  left: 14px;
-  top: calc(14px + env(safe-area-inset-top));
+  left: 28px;                                                 /* hero 卡距屏左 14 + 卡内 padding 14 = 28,贴 hero 卡左上内角 */
+  top: calc(26px + env(safe-area-inset-top));                 /* 同上,卡内顶约 12 + 卡外 14 = 26 */
   z-index: 860;
-  width: 40px;
-  height: 40px;
+  width: 32px;                                                /* 缩小一档,从 40 → 32 */
+  height: 32px;
   border-radius: 50%;
   border: 1px solid rgba(125, 125, 140, 0.22);
   background: rgba(17, 20, 38, 0.72);
@@ -370,6 +373,7 @@ autoResolve()
   box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.5);
   transition: transform 0.12s ease, background 0.15s ease;
 }
+.menu-fab :deep(svg) { width: 18px; height: 18px; }
 .menu-fab:active { transform: scale(0.9); }
 
 /* ===== 悬浮记账按钮(核心记账流程一步呼起) ===== */
