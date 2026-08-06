@@ -32,6 +32,7 @@ import IconReminders from '@/components/icons/IconReminders.vue'
 import IconBet from '@/components/icons/IconBet.vue'
 import IconTrendUp from '@/components/icons/IconTrendUp.vue'
 import IconTrendDown from '@/components/icons/IconTrendDown.vue'
+import FireLogo from '@/components/icons/FireLogo.vue'
 
 import { useAggregate } from '@/composables/aggregate'
 import { useStreak } from '@/composables/streak'
@@ -192,15 +193,18 @@ function gotoRecord(type) {
     <!-- HERO ============================================== -->
     <section class="hero">
       <div class="hero-greeting">
-        <NText depth="2" style="font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; opacity: 0.7">
+        <div class="hero-logo-line">
+          <FireLogo :size="32" :show-wordmark="true" />
+        </div>
+        <NText depth="2" style="font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; opacity: 0.65; display: block; margin-top: 6px">
           {{ $t('app.title') }}
         </NText>
         <h1 class="hero-title">
           {{ langGreeting }}<span v-if="userName">, {{ userName }}</span>
         </h1>
         <p class="hero-sub">{{ $t('dashboard.greeting') }}</p>
-        <p v-if="statement" class="hero-statement">“{{ statement }}”</p>
-        <NSpace size="small" style="margin-top: 14px" :wrap="true">
+        <p v-if="statement" class="hero-statement">"{{ statement }}"</p>
+        <NSpace size="small" style="margin-top: 10px" :wrap="true">
           <NTag v-for="(tag, i) in heroTags" :key="i" :type="tag.type" round size="small">{{ tag.text }}</NTag>
         </NSpace>
       </div>
@@ -220,12 +224,12 @@ function gotoRecord(type) {
       <div class="hero-meta">
         <div class="hero-meta-item">
           <NText depth="3" style="font-size: 11px">{{ $t('dashboard.etaLabel') }}</NText>
-          <div style="font-size: 22px; font-weight: 700; margin-top: 2px">{{ etaText }}</div>
+          <div class="hero-meta-val">{{ etaText }}</div>
         </div>
         <div class="hero-meta-divider"></div>
         <div class="hero-meta-item">
           <NText depth="3" style="font-size: 11px">{{ $t('dashboard.savingsRate') }}</NText>
-          <div style="font-size: 22px; font-weight: 700; margin-top: 2px; color: #18a058">{{ fmtPct(fs.savingsRate || 0) }}</div>
+          <div class="hero-meta-val" style="color: #18a058">{{ fmtPct(fs.savingsRate || 0) }}</div>
         </div>
       </div>
     </section>
@@ -287,31 +291,25 @@ function gotoRecord(type) {
     </NGrid>
 
     <!-- QUICK ACTIONS ====================================== -->
-    <!-- 快捷入口上移到 5 张卡之后(原 db-section 位置);
-         动态平衡已并入上方 stat-row 不再重复展示。 -->
-    <section class="section">
+    <!-- 4 项入口 4 列网格(桌面 4 列 / 移动 2×2):
+         原 4 项(记一笔收入/支出/FIRE计算器/提醒中心)删掉 2 个记一笔入口
+         (FAB 替代),换成"对赌"+"报告"凑齐 4 项,
+         跟 5 张主卡(2×2 副卡)对齐,视觉更整齐。 -->
+    <section class="section section-quick">
       <div class="section-head">
         <div class="section-title">
           <span>⚡ {{ $t('dashboard.quickActions') }}</span>
         </div>
       </div>
       <div class="quick-row">
-        <NButton class="qa-btn qa-income" size="large" round tertiary @click="gotoRecord('in')">
-          <template #icon><IconIncome :size="18" /></template>
-          {{ $t('dashboard.addIncome') }}
-        </NButton>
-        <NButton class="qa-btn qa-expense" size="large" round tertiary @click="gotoRecord('out')">
-          <template #icon><IconExpense :size="18" /></template>
-          {{ $t('dashboard.addExpense') }}
-        </NButton>
-        <NButton class="qa-btn qa-calc" size="large" round tertiary @click="goTo('calculator')">
-          <template #icon><IconRocket :size="18" /></template>
-          {{ $t('nav.calculator') }}
-        </NButton>
-        <NButton class="qa-btn qa-remind" size="large" round tertiary @click="goTo('reminders')">
-          <template #icon><IconReminders :size="18" /></template>
-          {{ $t('nav.reminders') }}
-        </NButton>
+        <button class="qa-btn qa-calc" type="button" @click="goTo('calculator')">
+          <IconRocket :size="20" />
+          <span class="qa-label">{{ $t('nav.calculator') }}</span>
+        </button>
+        <button class="qa-btn qa-remind" type="button" @click="goTo('reminders')">
+          <IconReminders :size="20" />
+          <span class="qa-label">{{ $t('nav.reminders') }}</span>
+        </button>
       </div>
     </section>
 
@@ -443,21 +441,21 @@ function gotoRecord(type) {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 24px;
-  padding: 26px 28px;
+  padding: 24px 28px;
   border-radius: 18px;
   background: linear-gradient(135deg, rgba(255,200,87,0.10), rgba(233,83,59,0.05) 60%, rgba(91,141,239,0.08));
   border: 1px solid rgba(125,125,140,0.18);
   overflow: hidden;
-  min-height: 220px;
+  min-height: 200px;
 }
 .hero::before {
   content: 'FIRE2FREE';
   position: absolute;
-  top: -40px;
-  right: -30px;
-  font-size: 200px;
+  top: -32px;
+  right: -20px;
+  font-size: 180px;
   font-weight: 900;
-  letter-spacing: 10px;
+  letter-spacing: 8px;
   background: linear-gradient(135deg, rgba(255,138,61,0.12), rgba(123,97,255,0.10));
   -webkit-background-clip: text;
   background-clip: text;
@@ -465,8 +463,10 @@ function gotoRecord(type) {
   pointer-events: none;
   user-select: none;
   z-index: 0;
+  white-space: nowrap;
 }
 .hero-greeting { z-index: 1; }
+.hero-logo-line { display: flex; align-items: center; }
 .hero-title {
   font-size: 30px;
   font-weight: 800;
@@ -475,11 +475,12 @@ function gotoRecord(type) {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  line-height: 1.15;
 }
 .hero-sub { font-size: 13px; margin: 0; opacity: 0.7; }
 .hero-statement {
   font-size: 13px;
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   padding: 8px 14px;
   border-left: 3px solid var(--fire-grad-primary, #FF8A3D);
   background: rgba(255,200,87,0.10);
@@ -488,16 +489,18 @@ function gotoRecord(type) {
   opacity: 0.92;
   max-width: 560px;
 }
-.hero-ring { z-index: 1; padding-bottom: 22px; }
+.hero-ring { z-index: 1; padding-bottom: 18px; }
 .hero-meta { display: flex; align-items: center; gap: 18px; justify-content: flex-end; z-index: 1; padding-right: 6px; }
 .hero-meta-item { text-align: right; }
 .hero-meta-divider { width: 1px; height: 36px; background: rgba(125,125,140,0.3); }
+.hero-meta-val { font-size: 22px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 1024px) {
   .hero { grid-template-columns: 1fr; text-align: center; }
   .hero-meta { justify-content: center; }
   .hero-meta-divider { display: none; }
   .hero-meta-item { text-align: center; }
+  .hero-logo-line { justify-content: center; }
 }
 
 .stat-row { margin-top: 4px; }
@@ -542,17 +545,36 @@ function gotoRecord(type) {
    这里进一步压缩 hero / stat-card / section 的内边距与字号,
    并把 bet-mini-list 改为单列避免横向溢出。 */
 @media (max-width: 768px) {
-  .hero { padding: 14px !important; gap: 14px; border-radius: 12px; }
-  .hero-title { font-size: 1.3rem !important; }
-  .hero-sub { font-size: 13px; }
-  .hero-statement { font-size: 12px; }
-  .hero-meta { gap: 12px; padding-right: 0; }
-  .hero-meta-item { font-size: 12px; }
-  .hero-meta-divider { height: 28px; }
-  /* 大字水印在手机端缩到 70px,避免占满屏 */
-  .hero::before { font-size: 70px !important; top: -10px !important; right: -10px !important; letter-spacing: 4px !important; }
-  /* 进度环容器 scale 0.7,在 326px 屏上不挤 */
-  .hero-ring-svg { transform: scale(0.7); transform-origin: center center; }
+  /* Hero 大幅压缩:2 列布局(greeting + ring 并排)+ meta 在下面一行
+     — 占满 326px 屏也只需 ~190px 高,留更多空间给下面数据。 */
+  .hero {
+    grid-template-columns: 1fr auto !important;
+    text-align: left !important;
+    padding: 12px 14px !important;
+    gap: 8px !important;
+    border-radius: 12px;
+    min-height: 0 !important;
+  }
+  .hero-logo-line { justify-content: flex-start; }
+  .hero-title { font-size: 1.1rem !important; margin: 4px 0 2px; }
+  .hero-sub { font-size: 12px; }
+  .hero-statement { font-size: 12px; padding: 6px 10px; max-width: 100%; }
+  .hero-ring { padding-bottom: 0; }
+  /* 进度环 scale 0.55(原 0.7),在 326px 屏上不挤 */
+  .hero-ring-svg { transform: scale(0.55); transform-origin: center center; }
+  /* 移动端 meta 移到最底整行,2 列:达成 | 储蓄率 */
+  .hero-meta { gap: 0; padding: 0; width: 100%; justify-content: space-around; }
+  .hero-meta-divider { display: none; }
+  .hero-meta-item { text-align: center; flex: 1; }
+  .hero-meta-val { font-size: 16px !important; }
+  /* 大字水印在手机端缩到 60px,保证完整显示(原 70px 仍会被切) */
+  .hero::before {
+    font-size: 60px !important;
+    top: -8px !important;
+    right: -8px !important;
+    letter-spacing: 3px !important;
+  }
+
   /* FIRE 目标卡片脚注(月支出 × 倍数)手机版 nowrap */
   .stat-card .stat-foot {
     white-space: nowrap;
@@ -571,11 +593,11 @@ function gotoRecord(type) {
        └───────────┴───────────┘
      数字都可以完整显示(主卡 ~316px 宽,副卡 ~152px 宽)。
      5 横排硬塞在 326px 里数字物理截字严重,这个布局是极限下的最优解。 */
-  .hero { padding: 14px !important; gap: 14px; border-radius: 12px; }
-  .hero-title { font-size: 1.3rem !important; }
-  .hero-sub { font-size: 13px; }
+  .hero { padding: 12px 14px !important; gap: 8px !important; border-radius: 12px; }
+  .hero-title { font-size: 1.1rem !important; }
+  .hero-sub { font-size: 12px; }
   .hero-statement { font-size: 12px; }
-  .hero-meta { gap: 12px; padding-right: 0; }
+  .hero-meta { gap: 0; padding: 0; width: 100%; justify-content: space-around; }
   .hero-meta-item { font-size: 12px; }
   .hero-meta-divider { height: 28px; }
 
@@ -632,6 +654,11 @@ function gotoRecord(type) {
   .section { padding: 12px !important; }
   .section-title { font-size: 14px; }
   .bet-mini-list { grid-template-columns: 1fr; }
+
+  /* 快捷入口 4 项 2x2 网格(每格 ~150px 宽) */
+  .quick-row { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+  .qa-btn { padding: 14px 6px !important; gap: 6px !important; }
+  .qa-btn .qa-label { font-size: 12px !important; }
 }
 
 /* iPhone SE 等 ≤480px 极窄屏:副卡数字再缩一档 */
@@ -641,8 +668,33 @@ function gotoRecord(type) {
   .stat-row > :not(:first-child) .stat-card .stat-foot { font-size: 9.5px !important; }
 }
 
-.quick-row { display: flex; flex-wrap: wrap; gap: 10px; }
-.qa-btn { padding: 6px 18px; font-weight: 600; }
+/* 快捷入口:4 项 4 列网格(桌面),移动端 2x2 见上面 @media */
+.section-quick { padding: 14px 16px !important; }
+.quick-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-width: 420px; }
+.qa-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 8px;
+  border: 1px solid rgba(125,125,140,0.18);
+  background: rgba(125,125,140,0.04);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  color: inherit;
+  text-align: center;
+}
+.qa-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px -8px rgba(125,125,140,0.3); }
+.qa-btn:active { transform: scale(0.97); }
+.qa-label { font-size: 12.5px; line-height: 1.2; }
+.qa-calc { color: #FF8A3D; }
+.qa-remind { color: #18a058; }
+.qa-bet { color: #7B61FF; }
+.qa-report { color: #5B8DEF; }
 
 .bet-mini-list {
   display: grid;

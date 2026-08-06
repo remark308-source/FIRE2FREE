@@ -5,7 +5,6 @@ import {
   NLayout, NLayoutSider, NLayoutContent,
   NMenu, NSpace, NSelect, NText, NConfigProvider,
   NMessageProvider, NDialogProvider, NNotificationProvider,
-  NDrawer, NDrawerContent,
   darkTheme, useOsTheme,
   zhCN, enUS,
   dateZhCN, dateEnUS
@@ -25,6 +24,7 @@ import IconLine from '@/components/icons/IconLine.vue'
 import IconSettings from '@/components/icons/IconSettings.vue'
 import SaveFxLayer from '@/components/SaveFxLayer.vue'
 import QuickEntrySheet from '@/components/QuickEntrySheet.vue'
+import SideSheet from '@/components/SideSheet.vue'
 import Onboarding from '@/views/Onboarding.vue'
 import { useContracts } from '@/composables/contracts'
 
@@ -237,47 +237,49 @@ autoResolve()
               <QuickEntrySheet v-model:show="quickOpen" />
             </template>
 
-            <!-- 移动抽屉:从左侧滑入,带遮罩,点选菜单自动关闭 -->
-            <NDrawer
+            <!-- 移动抽屉:从左侧滑入,带遮罩,点选菜单自动关闭
+                 用自定义 SideSheet 替代 NDrawer(naive-ui 2.38 NDrawerContent
+                 在 mobile 下偶发渲染空白,见 SideSheet.vue 顶部说明) -->
+            <SideSheet
               v-if="isMobile"
               v-model:show="mobileDrawerOpen"
-              :width="280"
               placement="left"
-              :native-scrollbar="false"
+              :width="280"
             >
-              <NDrawerContent style="padding: 14px 12px 16px 12px;">
+              <template #header>
                 <div class="drawer-head">
-                  <FireLogo :size="48" :show-wordmark="true" />
+                  <FireLogo :size="42" :show-wordmark="true" />
                 </div>
-                <NMenu
-                  :value="activeKey"
-                  :options="menuOptions"
-                  :render-label="(opt) => h('div', { style: 'display:inline-flex;align-items:center;gap:10px' }, [opt.iconRender(), h('span', {}, opt.label)])"
-                  @update:value="handleMenu"
-                />
-                <div class="drawer-foot">
-                  <div class="sider-controls">
-                    <NSelect
-                      size="small"
-                      :value="app.profile.locale"
-                      :options="langOptions"
-                      :menu-props="{ style: 'min-width: 140px; z-index: 9999' }"
-                      @update:value="(v) => app.updateProfile({ locale: v })"
-                    />
-                    <NSelect
-                      size="small"
-                      :value="app.profile.theme"
-                      :options="themeOptions"
-                      :menu-props="{ style: 'min-width: 140px; z-index: 9999' }"
-                      @update:value="(v) => app.updateProfile({ theme: v })"
-                    />
-                  </div>
-                  <NText depth="3" class="sider-privacy">
-                    🔒 {{ $t('app.privacyFooter') }}
-                  </NText>
+              </template>
+              <NMenu
+                :value="activeKey"
+                :options="menuOptions"
+                :render-label="(opt) => h('div', { style: 'display:inline-flex;align-items:center;gap:10px' }, [opt.iconRender(), h('span', {}, opt.label)])"
+                @update:value="handleMenu"
+              />
+              <div class="drawer-foot">
+                <div class="drawer-foot-title">{{ $t('settings.title') }}</div>
+                <div class="sider-controls">
+                  <NSelect
+                    size="small"
+                    :value="app.profile.locale"
+                    :options="langOptions"
+                    :menu-props="{ style: 'min-width: 140px; z-index: 9999' }"
+                    @update:value="(v) => app.updateProfile({ locale: v })"
+                  />
+                  <NSelect
+                    size="small"
+                    :value="app.profile.theme"
+                    :options="themeOptions"
+                    :menu-props="{ style: 'min-width: 140px; z-index: 9999' }"
+                    @update:value="(v) => app.updateProfile({ theme: v })"
+                  />
                 </div>
-              </NDrawerContent>
-            </NDrawer>
+                <NText depth="3" class="sider-privacy">
+                  🔒 {{ $t('app.privacyFooter') }}
+                </NText>
+              </div>
+            </SideSheet>
           </template>
         </NDialogProvider>
       </NNotificationProvider>
@@ -348,9 +350,10 @@ autoResolve()
   margin-top: 4px;
 }
 
-/* ===== 移动抽屉内部布局(drawer-foot 不再 absolute,改为普通块) ===== */
-.drawer-head { padding: 4px 8px 14px 8px; display: flex; align-items: center; gap: 10px; }
-.drawer-foot { margin-top: 18px; padding: 0 4px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+/* ===== 移动抽屉内部布局 ===== */
+.drawer-head { padding: 0 0 14px 0; display: flex; align-items: center; gap: 10px; }
+.drawer-foot { margin-top: 18px; padding: 16px 0 8px; display: flex; flex-direction: column; align-items: center; gap: 8px; border-top: 1px solid rgba(125,125,140,0.18); }
+.drawer-foot-title { font-size: 11px; font-weight: 700; opacity: 0.55; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
 
 /* ===== 移动端内容区:顶部避让状态栏安全区,底部避让底部 Tab 栏 ===== */
 .mobile-content {

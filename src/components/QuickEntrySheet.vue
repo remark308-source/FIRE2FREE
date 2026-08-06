@@ -1,9 +1,22 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+/**
+ * 记一笔 全屏 Modal(参考 MoneyFlow 风格)
+ *
+ * 与 NDrawer bottom-sheet 方案的区别:
+ *   - 全屏(fixed inset:0),覆盖底栏,内部不再滚动 — 单屏可见
+ *   - 类型切换 + 金额(点 NInputNumber 弹系统键盘) + 8 类精简网格
+ *     + 备注 + 日期 + 底部固定保存按钮
+ *   - 分类精简到 8 个(MoneyFlow 风格:餐饮/交通/购物/娱乐/居住/医疗/教育/其他),
+ *     录入数据写入对应原 key 以保持向后兼容;旧数据非 8 个之内的原 key 保留
+ *
+ * 数据约束:
+ *   - 支出 category 用 8 个精简 key(其他 7 个原 key 折入"其他")
+ *   - 收入 category 保留原 4 个(工资/奖金/副业/其他)
+ *   - monthly 模式走单笔 isMonthlyTotal 记录(同 Income/Expense 月版)
+ */
+import { computed, ref, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  NDrawer, NDrawerContent, NInput, NDatePicker, NInputNumber, useMessage
-} from 'naive-ui'
+import { NInput, NDatePicker, NInputNumber, useMessage } from 'naive-ui'
 import { useAppStore } from '@/stores/app'
 import { fireSave } from '@/composables/saveFx'
 import dayjs from 'dayjs'
@@ -18,29 +31,49 @@ const entryMode = computed(() => app.profile.entryMode)
 const base = computed(() => app.baseCurrency)
 
 const type = ref('expense') // 'expense' | 'income'
-const amountInput = ref('')
+const amount = ref(null) // NInputNumber 双向绑定
 const selectedCat = ref(null)
 const note = ref('')
 const date = ref(Date.now())
 const monthTotal = ref(null)
+const amountInputRef = ref(null) // 用于点金额聚焦
 
 const proxyShow = computed({
   get: () => props.show,
   set: (v) => emit('update:show', v)
 })
 
-const catList = computed(() =>
-  type.value === 'income' ? app.categories.incomeActive : app.categories.expenseDaily
-)
+// === 精简分类 ===============================================
+// 支出 8 个:餐饮/交通/购物/娱乐/居住/医疗/教育/其他(其余原 key 折入"其他")
+// 收入 4 个(本来就是 4 个,保留)
+const EXPENSE_CATS = [
+  { key: 'food',           zh: '餐饮', en: 'Food' },
+  { key: 'transport',      zh: '交通', en: 'Transport' },
+  { key: 'shopping',       zh: '购物', en: 'Shopping' },
+  { key: 'entertainment',  zh: '娱乐', en: 'Entertainment' },
+  { key: 'housing',        zh: '居住', en: 'Housing' },
+  { key: 'medical',        zh: '医疗', en: 'Medical' },
+  { key: 'education',      zh: '教育', en: 'Education' },
+  { key: 'other',          zh: '其他', en: 'Other' }
+]
+const INCOME_CATS = [
+  { key: 'salary',     zh: '工资', en: 'Salary' },
+  { key: 'bonus',      zh: '奖金', en: 'Bonus' },
+  { key: 'side_hustle',zh: '副业', en: 'Side Hustle' },
+  { key: 'other',      zh: '其他', en: 'Other' }
+]
+const catList = computed(() => (type.value === 'income' ? INCOME_CATS : EXPENSE_CATS))
 const labelOf = (c) => (c.key === 'other' ? t('common.other') : app.profile.locale === 'zh-CN' ? c.zh : c.en)
 
-// 分类色板(按 index 取色,保证渐变一致)
-const palette = ['#FF8A3D', '#5B8DEF', '#18a058', '#FF6B9D', '#7B61FF', '#FFA94D', '#36ad6a', '#C147E9']
+// 分类色板(8 类,4 列)
+const palette = ['#FF8A3D', '#5B8DEF', '#FF6B9D', '#7B61FF', '#18a058', '#E9533B', '#36ad6a', '#C147E9']
 const catColor = (i) => palette[i % palette.length]
+// 缩写:用第一字(zh) 或 第一字母(en)
+const catAbbr = (c) => app.profile.locale === 'zh-CN' ? c.zh.charAt(0) : c.en.charAt(0)
 
 function reset() {
   type.value = 'expense'
-  amountInput.value = ''
+  amount.value = null
   selectedCat.value = null
   note.value = ''
   date.value = Date.now()
@@ -53,25 +86,12 @@ function setType(tp) {
   selectedCat.value = null
 }
 
-// 自定义数字键盘(MoneyFlow 风格:3 列,带 tap 反馈)
-function inputNum(n) {
-  if (n === '.' && amountInput.value.includes('.')) return
-  if (amountInput.value.replace('.', '').length >= 9) return
-  if (amountInput.value === '0') amountInput.value = '' // 避免前导 0
-  amountInput.value += n
+// 点金额区域:聚焦到 NInputNumber 的隐藏 input,弹系统键盘
+function focusAmount() {
+  // NInputNumber 把 input 元素放在 .n-input__input-el;聚焦到容器内首个 input
+  const el = document.querySelector('.qe-amount-input input')
+  if (el) el.focus()
 }
-function delNum() {
-  amountInput.value = amountInput.value.slice(0, -1)
-}
-const amountNum = computed(() => {
-  const v = parseFloat(amountInput.value)
-  return Number.isFinite(v) ? v : 0
-})
-const amountDisplay = computed(() => {
-  if (!amountInput.value) return '0.00'
-  if (amountInput.value.endsWith('.')) return amountInput.value
-  return amountNum.value.toFixed(2)
-})
 
 function save() {
   if (entryMode.value === 'monthly') {
@@ -94,141 +114,185 @@ function save() {
     proxyShow.value = false
     return
   }
-  if (!amountNum.value || amountNum.value <= 0) return message.warning(t('common.inputAmount'))
+  if (!amount.value || Number(amount.value) <= 0) return message.warning(t('common.inputAmount'))
   if (!selectedCat.value) return message.warning(t('quick.pickCategory'))
   const coll = type.value === 'income' ? 'incomes' : 'expenses'
   app.add(coll, {
     type: type.value === 'income' ? 'active' : 'daily',
     date: dayjs(date.value).format('YYYY-MM-DD'),
     category: selectedCat.value,
-    amount: amountNum.value,
+    amount: Number(amount.value),
     currency: base.value,
     note: note.value
   })
   fireSave(t('common.saved'))
   proxyShow.value = false
 }
-
-// 抽屉高度:占屏 90%,封顶 620px,内部滚动
-const sheetH = computed(() => {
-  const h = typeof window !== 'undefined' ? window.innerHeight : 800
-  return Math.min(Math.round(h * 0.9), 620)
-})
 </script>
 
 <template>
-  <NDrawer v-model:show="proxyShow" placement="bottom" :height="sheetH" :auto-focus="false">
-    <NDrawerContent :native-scrollbar="true" :closable="false" class="quick-sheet">
-      <div class="qs-head">
-        <h3 class="qs-title">{{ t('quick.title') }}</h3>
-        <button class="qs-close" type="button" :aria-label="t('common.cancel')" @click="proxyShow = false">✕</button>
-      </div>
+  <Teleport to="body">
+    <div v-if="proxyShow" class="qe-root" role="dialog" aria-modal="true">
+      <div class="qe-mask" @click.self="proxyShow = false" />
 
-      <!-- 类型切换 -->
-      <div class="qs-type">
-        <button :class="['qs-type-btn', type === 'expense' && 'expense active']" type="button" @click="setType('expense')">
-          {{ t('quick.expense') }}
-        </button>
-        <button :class="['qs-type-btn', type === 'income' && 'income active']" type="button" @click="setType('income')">
-          {{ t('quick.income') }}
-        </button>
-      </div>
-
-      <!-- 逐笔模式:金额 + 分类 + 数字键盘 -->
-      <template v-if="entryMode !== 'monthly'">
-        <div class="qs-amount">
-          <span class="qs-cur">{{ base }}</span>
-          <span class="qs-amt">{{ amountDisplay }}</span>
+      <div class="qe-card">
+        <!-- 顶部条:标题 + 关闭 -->
+        <div class="qe-head">
+          <h3 class="qe-title">{{ t('quick.title') }}</h3>
+          <button class="qe-close" type="button" :aria-label="t('common.cancel')" @click="proxyShow = false">✕</button>
         </div>
 
-        <div class="qs-cats">
-          <p class="qs-cats-label">{{ t('quick.pickCategory') }}</p>
-          <div class="qs-cat-grid">
-            <button
-              v-for="(c, i) in catList"
-              :key="c.key"
-              :class="['qs-cat', selectedCat === c.key && 'sel']"
-              type="button"
-              @click="selectedCat = c.key"
-            >
-              <span class="qs-cat-ic" :style="{ background: catColor(i) }">{{ labelOf(c).charAt(0) }}</span>
-              <span class="qs-cat-name">{{ labelOf(c) }}</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="qs-pad">
-          <button v-for="n in ['1', '2', '3', '4', '5', '6', '7', '8', '9']" :key="n" class="qs-num" type="button" @click="inputNum(n)">{{ n }}</button>
-          <button class="qs-num" type="button" @click="inputNum('.')">.</button>
-          <button class="qs-num" type="button" @click="inputNum('0')">0</button>
-          <button class="qs-num qs-del" type="button" aria-label="delete" @click="delNum()">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 4H8l-4 4 4 4h13" /><line x1="18" y1="9" x2="12" y2="15" /><line x1="12" y1="9" x2="18" y2="15" />
-            </svg>
+        <!-- 类型切换 -->
+        <div class="qe-type">
+          <button :class="['qe-type-btn', type === 'expense' && 'expense active']" type="button" @click="setType('expense')">
+            {{ t('quick.expense') }}
+          </button>
+          <button :class="['qe-type-btn', type === 'income' && 'income active']" type="button" @click="setType('income')">
+            {{ t('quick.income') }}
           </button>
         </div>
 
-        <NInput v-model:value="note" :placeholder="t('common.note')" class="qs-note" />
-        <NDatePicker v-model:value="date" type="date" class="qs-date" />
-      </template>
+        <!-- 中部可滚动区 -->
+        <div class="qe-body">
+          <template v-if="entryMode !== 'monthly'">
+            <!-- 金额(点击聚焦,弹系统键盘) -->
+            <div class="qe-amount" :class="{ filled: amount }" @click="focusAmount">
+              <span class="qe-cur">{{ base }}</span>
+              <NInputNumber
+                ref="amountInputRef"
+                v-model:value="amount"
+                :min="0"
+                :precision="2"
+                :show-button="false"
+                :placeholder="'0.00'"
+                :bordered="false"
+                class="qe-amount-input"
+              />
+            </div>
+            <p class="qe-amount-hint">{{ t('quick.addHint') }}</p>
 
-      <!-- 月总额模式:单笔总额 -->
-      <template v-else>
-        <div class="qs-month">
-          <p class="qs-month-label">{{ t('quick.monthTotal') }}</p>
-          <NInputNumber v-model:value="monthTotal" :min="0" :precision="2" :placeholder="t('common.inputAmount')" class="qs-month-input" />
+            <!-- 分类网格 4 列 8 项 -->
+            <p class="qe-cats-label">{{ t('quick.pickCategory') }}</p>
+            <div class="qe-cat-grid">
+              <button
+                v-for="(c, i) in catList"
+                :key="c.key"
+                :class="['qe-cat', selectedCat === c.key && 'sel']"
+                type="button"
+                @click="selectedCat = c.key"
+              >
+                <span class="qe-cat-ic" :style="{ background: catColor(i) }">{{ catAbbr(c) }}</span>
+                <span class="qe-cat-name">{{ labelOf(c) }}</span>
+              </button>
+            </div>
+
+            <!-- 备注 + 日期(2 列紧凑) -->
+            <div class="qe-row">
+              <NInput v-model:value="note" :placeholder="t('common.note')" class="qe-note" />
+              <NDatePicker v-model:value="date" type="date" class="qe-date" />
+            </div>
+          </template>
+
+          <!-- 月总额模式 -->
+          <template v-else>
+            <div class="qe-month">
+              <p class="qe-month-label">{{ t('quick.monthTotal') }}</p>
+              <NInputNumber
+                v-model:value="monthTotal"
+                :min="0"
+                :precision="2"
+                :placeholder="t('common.inputAmount')"
+                class="qe-month-input"
+              />
+            </div>
+          </template>
         </div>
-      </template>
 
-      <button class="qs-save" type="button" @click="save">{{ t('common.save') }}</button>
-    </NDrawerContent>
-  </NDrawer>
+        <!-- 底部固定:保存按钮 -->
+        <div class="qe-foot">
+          <button class="qe-save" type="button" @click="save">{{ t('common.save') }}</button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style>
-/* ===== 记一笔 底部抽屉(参考 MoneyFlow 记一笔交互) ===== */
-.quick-sheet {
-  --qs-radius: 14px;
+/* ===== 记一笔 全屏 Modal(参考 MoneyFlow 风格) ===== */
+.qe-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1300; /* 高于 SideSheet (1200) */
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  animation: qeFadeIn 0.18s ease;
 }
-.quick-sheet .n-drawer-body {
-  padding: 0 !important;
+@keyframes qeFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.qe-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
 }
-.qs-head {
+
+.qe-card {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  max-width: 480px; /* 平板/桌面端不撑全宽,居中卡片 */
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--qe-bg, #1b1f33);
+  color: var(--qs-text, #e6e8f0);
+  animation: qeSlideUp 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes qeSlideUp {
+  from { transform: translateY(20px); opacity: 0.6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.theme-light .qe-card { background: #f6f7fb; }
+
+/* 顶部 */
+.qe-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 18px 10px;
+  padding: calc(12px + env(safe-area-inset-top)) 18px 10px;
+  flex-shrink: 0;
 }
-.qs-title {
+.qe-title {
   font-size: 18px;
   font-weight: 700;
   margin: 0;
-  color: var(--qs-text, #e6e8f0);
 }
-.qs-close {
-  width: 32px;
-  height: 32px;
+.qe-close {
+  width: 32px; height: 32px;
   border-radius: 50%;
   border: none;
   background: rgba(125, 125, 140, 0.16);
-  color: #c2c6d6;
+  color: inherit;
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
   transition: transform 0.1s ease, background 0.15s ease;
 }
-.qs-close:active { transform: scale(0.9); }
+.qe-close:active { transform: scale(0.9); }
 
 /* 类型切换 */
-.qs-type {
+.qe-type {
   display: flex;
   gap: 6px;
-  margin: 4px 18px 14px;
+  margin: 4px 16px 12px;
   background: rgba(125, 125, 140, 0.12);
   border-radius: 12px;
   padding: 4px;
+  flex-shrink: 0;
 }
-.qs-type-btn {
+.qe-type-btn {
   flex: 1;
   padding: 11px;
   border: none;
@@ -240,123 +304,149 @@ const sheetH = computed(() => {
   cursor: pointer;
   transition: all 0.2s ease;
 }
-.qs-type-btn.expense.active {
+.qe-type-btn.expense.active {
   background: linear-gradient(135deg, #FF6B35 0%, #E9533B 100%);
   color: #fff;
 }
-.qs-type-btn.income.active {
+.qe-type-btn.income.active {
   background: linear-gradient(135deg, #18a058 0%, #36ad6a 100%);
   color: #fff;
 }
 
-/* 金额显示 */
-.qs-amount {
+/* 中部可滚动 */
+.qe-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 金额区(点聚焦) */
+.qe-amount {
   display: flex;
   align-items: baseline;
   justify-content: center;
   gap: 8px;
-  padding: 10px 0 16px;
+  padding: 10px 0 0;
+  cursor: text;
+  min-height: 70px;
 }
-.qs-cur {
+.qe-cur {
   font-size: 16px;
   font-weight: 600;
-  color: #8a90a6;
+  opacity: 0.6;
 }
-.qs-amt {
-  font-size: 40px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  color: var(--qs-text, #e6e8f0);
+.qe-amount-input {
   font-variant-numeric: tabular-nums;
 }
+.qe-amount-input :deep(.n-input) {
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  text-align: center;
+  background: transparent !important;
+}
+.qe-amount-input :deep(.n-input__input-el),
+.qe-amount-input :deep(input) {
+  font-size: 38px !important;
+  font-weight: 800 !important;
+  text-align: center;
+  padding: 0 !important;
+  background: transparent !important;
+  color: inherit;
+}
+.qe-amount.filled .qe-amount-input :deep(.n-input__input-el) {
+  color: #5B8DEF;
+}
+.theme-light .qe-amount.filled .qe-amount-input :deep(.n-input__input-el) {
+  color: #3b6fe0;
+}
+.qe-amount-hint {
+  font-size: 11px;
+  text-align: center;
+  margin: 0 0 4px;
+  opacity: 0.5;
+}
 
-/* 分类网格 */
-.qs-cats-label {
+/* 分类标题 */
+.qe-cats-label {
   font-size: 12px;
-  color: #8a90a6;
-  margin: 0 0 8px;
+  margin: 4px 0 6px;
+  opacity: 0.6;
   padding: 0 2px;
 }
-.qs-cat-grid {
+
+/* 分类网格 4 列 8 项 = 2 行 */
+.qe-cat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 6px;
 }
-.qs-cat {
+.qe-cat {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 10px 4px;
+  gap: 5px;
+  padding: 9px 4px;
   border-radius: 12px;
   background: rgba(125, 125, 140, 0.08);
   border: 1.5px solid transparent;
   cursor: pointer;
   transition: all 0.18s ease;
 }
-.qs-cat:active { transform: scale(0.95); }
-.qs-cat.sel {
+.qe-cat:active { transform: scale(0.95); }
+.qe-cat.sel {
   background: rgba(91, 141, 239, 0.16);
   border-color: #5B8DEF;
 }
-.qs-cat-ic {
-  width: 38px;
-  height: 38px;
+.qe-cat-ic {
+  width: 36px;
+  height: 36px;
   border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   color: #fff;
 }
-.qs-cat-name {
+.qe-cat-name {
   font-size: 11px;
-  color: #c2c6d6;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
 }
 
-/* 数字键盘 */
-.qs-pad {
+/* 备注 + 日期(2 列) */
+.qe-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-bottom: 14px;
+  margin: 4px 0 8px;
 }
-.qs-num {
-  height: 54px;
-  border: none;
-  border-radius: 12px;
-  background: rgba(125, 125, 140, 0.1);
-  color: var(--qs-text, #e6e8f0);
-  font-size: 22px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.08s ease, background 0.15s ease;
-}
-.qs-num:active { transform: scale(0.94); background: rgba(91, 141, 239, 0.3); }
-.qs-del { color: #f0886b; }
-
-/* 备注 / 日期 */
-.qs-note { margin-bottom: 10px; }
-.qs-date { margin-bottom: 16px; }
+.qe-note, .qe-date { margin: 0; }
 
 /* 月总额 */
-.qs-month { padding: 8px 2px 20px; }
-.qs-month-label { font-size: 13px; color: #8a90a6; margin: 0 0 10px; }
-.qs-month-input { width: 100%; }
+.qe-month { padding: 20px 2px; }
+.qe-month-label { font-size: 13px; opacity: 0.6; margin: 0 0 10px; }
+.qe-month-input { width: 100%; }
 
-/* 保存按钮 */
-.qs-save {
+/* 底部固定保存 */
+.qe-foot {
+  flex-shrink: 0;
+  padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+  background: var(--qe-bg, #1b1f33);
+  border-top: 1px solid rgba(125, 125, 140, 0.12);
+}
+.theme-light .qe-foot { background: #f6f7fb; }
+.qe-save {
   width: 100%;
-  padding: 15px;
+  padding: 14px;
   border: none;
   border-radius: 14px;
   background: linear-gradient(135deg, #5B8DEF 0%, #7B61FF 100%);
@@ -366,13 +456,17 @@ const sheetH = computed(() => {
   cursor: pointer;
   box-shadow: 0 8px 20px -6px rgba(91, 141, 239, 0.55);
   transition: transform 0.12s ease, opacity 0.15s ease;
-  margin-bottom: calc(8px + env(safe-area-inset-bottom));
 }
-.qs-save:active { transform: scale(0.98); opacity: 0.92; }
+.qe-save:active { transform: scale(0.98); opacity: 0.92; }
+.qe-save:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* 浅色主题适配 */
-:root[data-theme='light'] .quick-sheet,
-.quick-sheet[data-theme='light'] {
-  --qs-text: #1b2350;
+/* 极小屏(iPhone SE 5.4" = 320×568)收紧 */
+@media (max-height: 600px) {
+  .qe-amount { min-height: 56px; padding-top: 4px; }
+  .qe-amount-input :deep(.n-input__input-el),
+  .qe-amount-input :deep(input) { font-size: 32px !important; }
+  .qe-cat { padding: 7px 4px; }
+  .qe-cat-ic { width: 32px; height: 32px; }
+  .qe-type-btn { padding: 9px; font-size: 14px; }
 }
 </style>
