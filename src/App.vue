@@ -347,7 +347,7 @@ autoResolve()
 
 /* ===== 移动端内容区:顶部避让汉堡按钮 + 状态栏安全区,底部避让 FAB ===== */
 .mobile-content {
-  padding: calc(58px + env(safe-area-inset-top)) 12px calc(90px + env(safe-area-inset-bottom)) 12px;
+  padding: calc(32px + env(safe-area-inset-top)) 12px calc(90px + env(safe-area-inset-bottom)) 12px;
 }
 
 /* (移动端底部 Tab 栏已移除,改由左上汉堡按钮打开抽屉) */

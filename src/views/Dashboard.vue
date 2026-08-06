@@ -584,8 +584,8 @@ function gotoRecord(type) {
   position: relative;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: 8px 12px;
+  padding: 4px 10px;
   border-radius: 14px;
   background: linear-gradient(135deg, rgba(255,200,87,0.10), rgba(233,83,59,0.05) 60%, rgba(91,141,239,0.08));
   border: 1px solid rgba(125,125,140,0.18);
