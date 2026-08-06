@@ -179,6 +179,8 @@ const etaText = computed(() => {
   if (fs.eta < 1) return `~${Math.round(fs.eta * 12)} mo`
   return `${fs.eta.toFixed(1)} yr`
 })
+/* 本月净现金流(收入 - 支出),用于 hero 左列 chip */
+const monthNet = computed(() => displayMonth.value.totalIncome - displayMonth.value.totalExpense)
 
 const incomeTrendIsActive = computed(() => displayMonth.value.activeIncome >= displayMonth.value.passiveIncome)
 
@@ -191,45 +193,46 @@ function gotoRecord(type) {
 <template>
   <div class="dash-wrap">
     <!-- HERO ============================================== -->
-    <!-- 上方行:[Logo + FIRE2FREE + 问候 | 进度环] 横排
-         下方行:[储蓄率 | 预计达成] 一整行横排(中间分隔线)
-         分隔线把上下两行视觉上分开,与参考图一致。 -->
+    <!-- 3 列紧凑横向并排:左 brand 4 行 / 中 储蓄率+预计达成 垂直居中 / 右 进度环+底部 chip
+         整体 padding/gap 全面压缩,避免 hero 占满整个首屏。 -->
     <section class="hero">
-      <!-- 上方行:左 brand + 右 ring -->
-      <div class="hero-top">
-        <div class="hero-top-left">
-          <FireLogo :size="40" :show-wordmark="true" />
-          <h1 class="hero-title">
-            {{ langGreeting }}<span v-if="userName">, {{ userName }}</span>
-          </h1>
-          <p class="hero-sub">{{ $t('dashboard.greeting') }}</p>
-          <p v-if="statement" class="hero-statement">&ldquo;{{ statement }}&rdquo;</p>
-          <NSpace class="hero-tags" size="small" style="margin-top: 8px" :wrap="true">
-            <NTag v-for="(tag, i) in heroTags" :key="i" :type="tag.type" round size="small">{{ tag.text }}</NTag>
-          </NSpace>
-        </div>
-        <div class="hero-top-right">
-          <FireProgressRing
-            :progress="fs.progress"
-            :size="200"
-            class="hero-ring-svg"
-          />
+      <!-- 左列:brand 4 行紧凑堆叠 -->
+      <div class="hero-left">
+        <FireLogo :size="36" :show-wordmark="true" />
+        <h1 class="hero-title">
+          {{ langGreeting }}<span v-if="userName">, {{ userName }}</span>
+        </h1>
+        <p class="hero-sub">{{ $t('dashboard.greeting') }}</p>
+        <div class="hero-cashflow">
+          <span class="hero-cashflow-label">{{ $t('dashboard.thisMonthCashflow') }}</span>
+          <span class="hero-cashflow-val" :class="monthNet >= 0 ? 'is-pos' : 'is-neg'">
+            {{ monthNet >= 0 ? '+' : '' }}{{ fmtL(monthNet, base) }}
+          </span>
         </div>
       </div>
 
-      <!-- 上下分隔线 -->
-      <div class="hero-divider"></div>
-
-      <!-- 下方行:储蓄率 + 预计达成 整行横排 -->
-      <div class="hero-meta">
-        <div class="hero-meta-item">
-          <div class="hero-meta-label">{{ $t('dashboard.savingsRate') }}</div>
-          <div class="hero-meta-val hero-meta-val--sr">{{ fmtPct(fs.savingsRate || 0) }}</div>
+      <!-- 中列:储蓄率 + 预计达成,垂直居中 -->
+      <div class="hero-mid">
+        <div class="hero-mid-item">
+          <div class="hero-mid-label">{{ $t('dashboard.savingsRate') }}</div>
+          <div class="hero-mid-val hero-mid-val--sr">{{ fmtPct(fs.savingsRate || 0) }}</div>
         </div>
-        <div class="hero-meta-divider"></div>
-        <div class="hero-meta-item">
-          <div class="hero-meta-label">{{ $t('dashboard.etaLabel') }}</div>
-          <div class="hero-meta-val">{{ etaText }}</div>
+        <div class="hero-mid-item">
+          <div class="hero-mid-label">{{ $t('dashboard.etaLabel') }}</div>
+          <div class="hero-mid-val">{{ etaText }}</div>
+        </div>
+      </div>
+
+      <!-- 右列:进度环 + 底部蓝色 chip -->
+      <div class="hero-ring">
+        <FireProgressRing
+          :progress="fs.progress"
+          :size="200"
+          class="hero-ring-svg"
+        />
+        <div class="hero-ring-chip">
+          <span class="hero-ring-chip-label">{{ $t('dashboard.achieved') }}</span>
+          <span class="hero-ring-chip-val">{{ fmtPct(fs.progress || 0) }}</span>
         </div>
       </div>
     </section>
@@ -427,118 +430,146 @@ function gotoRecord(type) {
 </template>
 
 <style scoped>
-.dash-wrap { display: flex; flex-direction: column; gap: 18px; }
+.dash-wrap { display: flex; flex-direction: column; gap: 12px; }
 
+/* === HERO ============================================== */
+/* 3 列横向并排:[左 brand 4 行][中 储蓄率+预计达成][右 进度环+底部 chip]
+   整体紧凑上移,无大留白。 */
 .hero {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
   border-radius: 16px;
   background: linear-gradient(135deg, rgba(255,200,87,0.10), rgba(233,83,59,0.05) 60%, rgba(91,141,239,0.08));
   border: 1px solid rgba(125,125,140,0.18);
   overflow: hidden;
 }
-/* 上方行:左 brand + 右 ring */
-.hero-top {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-}
-.hero-top-left { min-width: 0; display: flex; flex-direction: column; }
-.hero-top-left .fire-logo { margin-bottom: 4px; flex-shrink: 0; min-width: max-content; }
-.hero-top-right { justify-self: end; align-self: center; }
-.hero-ring-svg { display: block; }
 
+/* 左列:Logo + 你好标题 + 副标 + 净现金流 chip */
+.hero-left {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hero-left .fire-logo { flex-shrink: 0; min-width: max-content; margin-bottom: 2px; }
 .hero-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
-  margin: 4px 0 2px;
-  background: linear-gradient(90deg,#FF8A3D 0%, #E9533B 60%);
+  margin: 2px 0 0;
+  background: linear-gradient(90deg, #FF8A3D 0%, #E9533B 60%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   line-height: 1.15;
 }
-.hero-sub { font-size: 12px; margin: 0; opacity: 0.7; }
-.hero-statement {
-  font-size: 12px;
-  margin: 6px 0 0;
-  padding: 6px 12px;
-  border-left: 3px solid var(--fire-grad-primary, #FF8A3D);
-  background: rgba(255,200,87,0.10);
-  border-radius: 0 8px 8px 0;
-  font-style: italic;
-  opacity: 0.92;
-  max-width: 100%;
-}
-
-/* 上下两行的分隔线(参考图样式) */
-.hero-divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(125,125,140,0.32) 20%, rgba(125,125,140,0.32) 80%, transparent);
-}
-
-/* 下方行:储蓄率 + 预计达成 一整行横排,中间一根细竖线分隔 */
-.hero-meta {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+.hero-sub { font-size: 12px; margin: 0; opacity: 0.7; line-height: 1.4; }
+/* 净现金流 chip:绿底浅色字 / 红底浅色字(中国语境绿=收入 红=支出/负) */
+.hero-cashflow {
+  display: inline-flex;
   align-items: center;
-  gap: 16px;
-  padding: 4px 8px 0;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  width: fit-content;
+  background: rgba(24,160,88,0.14);
+  color: #18a058;
 }
-.hero-meta-item {
+.hero-cashflow.is-neg { background: rgba(233,83,59,0.14); color: #E9533B; }
+.theme-dark .hero-cashflow { background: rgba(24,160,88,0.22); color: #4fcf8e; }
+.theme-dark .hero-cashflow.is-neg { background: rgba(233,83,59,0.22); color: #ff7a5c; }
+.hero-cashflow-label { opacity: 0.85; }
+.hero-cashflow-val { font-variant-numeric: tabular-nums; }
+
+/* 中列:储蓄率 + 预计达成 垂直堆叠,整体垂直居中 */
+.hero-mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 80px;
+}
+.hero-mid-item {
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 0;
 }
-.hero-meta-label {
-  font-size: 12px;
+.hero-mid-label {
+  font-size: 11px;
   opacity: 0.65;
   letter-spacing: 0.3px;
 }
-.hero-meta-val {
-  font-size: 22px;
+.hero-mid-val {
+  font-size: 18px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--text-color, #1a1a1a);
   line-height: 1.2;
 }
 /* 储蓄率:中国语境下绿色不表示正向,改品牌主橙(浅色) / 提亮橙(深色) */
-.hero-meta-val--sr { color: var(--ring-text-sr, #FF8A3D); }
-/* 中间分隔竖线 */
-.hero-meta-divider {
-  width: 1px;
-  height: 32px;
-  background: rgba(125,125,140,0.32);
-  justify-self: center;
-}
+.hero-mid-val--sr { color: var(--ring-text-sr, #FF8A3D); }
 
-/* 平板:hero 保持上下两行 */
+/* 右列:进度环 + 底部"达成 X%" chip */
+.hero-ring {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  justify-self: end;
+}
+.hero-ring-svg { display: block; }
+.hero-ring-chip {
+  margin-top: -4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #5B8DEF, #7B61FF);
+  color: #fff;
+  white-space: nowrap;
+}
+.hero-ring-chip-label { opacity: 0.92; }
+.hero-ring-chip-val { font-variant-numeric: tabular-nums; }
+
+/* 平板:hero padding 稍紧 */
 @media (max-width: 1024px) and (min-width: 769px) {
-  .hero { padding: 14px 16px; }
+  .hero { padding: 10px 12px; }
 }
 
-/* 手机:hero-top 缩小字号,ring 缩 0.55x;hero-meta 数字缩 18px */
+/* 手机:hero 整体缩小,左列净现金流 chip 保留,ring 缩 0.55x */
 @media (max-width: 768px) {
-  .hero { padding: 12px 14px !important; gap: 10px !important; border-radius: 14px; }
-  .hero-title { font-size: 1.05rem !important; }
+  .hero {
+    padding: 8px 10px !important;
+    gap: 8px !important;
+    border-radius: 14px;
+  }
+  .hero-title { font-size: 1rem !important; }
   .hero-sub { font-size: 11px; }
-  .hero-statement { font-size: 11px; padding: 4px 10px; }
-  .hero-tags { display: none; }
-  .hero-ring-svg { transform: scale(0.5); transform-origin: center center; }
-  .hero-meta { grid-template-columns: 1fr auto 1fr; gap: 10px; padding: 2px 4px 0; }
-  .hero-meta-label { font-size: 11px; }
-  .hero-meta-val { font-size: 18px; }
-  .hero-meta-divider { height: 26px; }
+  .hero-cashflow { font-size: 11px; padding: 3px 8px; }
+  .hero-mid { min-width: 64px; }
+  .hero-mid-label { font-size: 10px; }
+  .hero-mid-val { font-size: 15px; }
+  .hero-ring-svg { transform: scale(0.55); transform-origin: center center; }
+  .hero-ring-chip { font-size: 10px; padding: 2px 8px; margin-top: -8px; }
 }
-/* ≤480 极窄屏:hero-meta 数字再缩 */
 @media (max-width: 480px) {
-  .hero-meta-val { font-size: 16px; }
+  .hero-title { font-size: 0.95rem !important; }
+  .hero-mid-val { font-size: 14px; }
+  .hero-cashflow-label { display: none; }  /* 极窄屏藏 label,chip 留 value */
+  .hero-cashflow { padding: 3px 8px; font-size: 11px; }
+  .hero-left { min-width: 0; }
+  .hero-ring-svg { transform: scale(0.45); transform-origin: center center; }
 }
 
 .stat-row { margin-top: 4px; }

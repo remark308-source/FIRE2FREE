@@ -170,6 +170,8 @@ export default {
     // 进度环
     progressLabel: '已达成',
     etaLabel: '预计达成',
+    achieved: '已达成',
+    thisMonthCashflow: '本月 净现金流',
     yearsLeft: '还需约',
     yearsSuffix: '年',
     monthlyProgress: {

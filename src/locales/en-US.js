@@ -162,6 +162,8 @@ export default {
 
     progressLabel: 'Progress',
     etaLabel: 'ETA',
+    achieved: 'Progress',
+    thisMonthCashflow: 'This month net',
     yearsLeft: 'approx.',
     yearsSuffix: 'years left',
     monthlyProgress: {
