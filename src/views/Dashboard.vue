@@ -195,18 +195,54 @@ function gotoRecord(type) {
     <!-- HERO ============================================== -->
     <!-- 3 列紧凑横向并排:左 brand 4 行 / 中 储蓄率+预计达成 垂直居中 / 右 进度环+底部 chip
          整体 padding/gap 全面压缩,避免 hero 占满整个首屏。 -->
-    <section class="hero">
-      <!-- 左列:brand 4 行紧凑堆叠 -->
+    <!-- HERO:桌面用 074de8e 昨天的结构;手机用今天的 round-8 紧凑三列。
+         两者共存于 DOM,用 class 在断点切换显隐。 -->
+    <!-- 桌面 Hero(074de8e 样子:FIRE2FREE 水印 + greeting + ring + meta) -->
+    <section class="hero hero--desktop">
+      <div class="hero-greeting">
+        <NText depth="2" style="font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; opacity: 0.7">
+          {{ $t('app.title') }}
+        </NText>
+        <h1 class="hero-title">
+          {{ langGreeting }}<span v-if="userName">, {{ userName }}</span>
+        </h1>
+        <p class="hero-sub">{{ $t('dashboard.greeting') }}</p>
+        <p v-if="statement" class="hero-statement">“{{ statement }}”</p>
+        <NSpace size="small" class="hero-tags" :wrap="true">
+          <NTag v-for="(tag, i) in heroTags" :key="i" :type="tag.type" round size="small">{{ tag.text }}</NTag>
+        </NSpace>
+      </div>
+
+      <div class="hero-ring">
+        <FireProgressRing
+          :progress="fs.progress"
+          :size="220"
+          class="hero-ring-svg"
+        />
+      </div>
+
+      <div class="hero-meta">
+        <div class="hero-meta-item">
+          <NText depth="3" class="hero-meta-label">{{ $t('dashboard.etaLabel') }}</NText>
+          <div class="hero-meta-val">{{ etaText }}</div>
+        </div>
+        <div class="hero-meta-divider"></div>
+        <div class="hero-meta-item">
+          <NText depth="3" class="hero-meta-label">{{ $t('dashboard.savingsRate') }}</NText>
+          <div class="hero-meta-val hero-meta-val--sr">{{ fmtPct(fs.savingsRate || 0) }}</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 手机 Hero(今天 round-8:brand | 储蓄率+预计达成 | ring+达成chip) -->
+    <section class="hero hero--mobile">
+      <!-- 左列:brand 4 行紧凑堆叠 + 净现金流 chip -->
       <div class="hero-left">
         <FireLogo :size="36" :show-wordmark="true" />
         <h1 class="hero-title">
           {{ langGreeting }}<span v-if="userName">, {{ userName }}</span>
         </h1>
         <p class="hero-sub">{{ $t('dashboard.greeting') }}</p>
-        <p v-if="statement" class="hero-statement">{{ statement }}</p>
-        <NSpace v-if="heroTags.length" class="hero-tags" :size="8">
-          <NTag v-for="(tag, i) in heroTags" :key="i" :type="tag.type" size="small" round>{{ tag.text }}</NTag>
-        </NSpace>
         <div class="hero-cashflow">
           <span class="hero-cashflow-label">{{ $t('dashboard.thisMonthCashflow') }}</span>
           <span class="hero-cashflow-val" :class="monthNet >= 0 ? 'is-pos' : 'is-neg'">
@@ -298,10 +334,36 @@ function gotoRecord(type) {
       </NGi>
     </NGrid>
 
-    <!-- QUICK ACTIONS ====================================== -->
-    <!-- 标题"快捷入口" + FIRE计算器 + 提醒中心 三个元素同一行横排,
-         两个按钮缩成紧凑 chip(图标+文字横排),整体缩一档。 -->
-    <section class="section section-quick">
+    <!-- QUICK ACTIONS:桌面 4 按钮(074de8e)/ 手机 2 按钮(今天 round-8) 双布局 -->
+    <!-- 桌面:4 个入口(记一笔收入/支出/FIRE计算器/提醒中心) -->
+    <section class="section section-quick quick--desktop">
+      <div class="section-head">
+        <div class="section-title">
+          <span>⚡ {{ $t('dashboard.quickActions') }}</span>
+        </div>
+      </div>
+      <div class="quick-row">
+        <NButton class="qa-dbtn qa-income" size="large" round tertiary @click="gotoRecord('in')">
+          <template #icon><IconIncome :size="18" /></template>
+          {{ $t('dashboard.addIncome') }}
+        </NButton>
+        <NButton class="qa-dbtn qa-expense" size="large" round tertiary @click="gotoRecord('out')">
+          <template #icon><IconExpense :size="18" /></template>
+          {{ $t('dashboard.addExpense') }}
+        </NButton>
+        <NButton class="qa-dbtn qa-calc" size="large" round tertiary @click="goTo('calculator')">
+          <template #icon><IconRocket :size="18" /></template>
+          {{ $t('nav.calculator') }}
+        </NButton>
+        <NButton class="qa-dbtn qa-remind" size="large" round tertiary @click="goTo('reminders')">
+          <template #icon><IconReminders :size="18" /></template>
+          {{ $t('nav.reminders') }}
+        </NButton>
+      </div>
+    </section>
+
+    <!-- 手机:标题"快捷入口" + FIRE计算器 + 提醒中心 同一行横排,紧凑 chip -->
+    <section class="section section-quick quick--mobile">
       <div class="quick-bar">
         <div class="quick-title"><span class="quick-emoji">⚡</span>{{ $t('dashboard.quickActions') }}</div>
         <button class="qa-btn qa-calc" type="button" @click="goTo('calculator')">
@@ -443,31 +505,101 @@ function gotoRecord(type) {
 /* base = 桌面(>768px) 布局:今早改前的 3 列(brand | 中 | ring) + space-between。
    新的紧凑三列 + 净现金流chip + 达成chip 只在 @media(max-width:768px) 生效,
    避免改动漏到桌面。 */
-.hero {
+/* === HERO 双布局:桌面=074de8e 昨天样子 / 手机=今天 round-8 ===
+   .hero--desktop 仅 >768px 显示;.hero--mobile 仅 ≤768px 显示。
+   储蓄率桌面用品牌橙(非绿,满足"不用绿色"规则)。 */
+
+/* ---- 桌面 Hero(074de8e 样子:FIRE2FREE 水印 + greeting + ring + meta) ---- */
+.hero--desktop {
   position: relative;
   display: grid;
-  grid-template-columns: auto auto auto;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
-  border-radius: 16px;
+  gap: 24px;
+  padding: 26px 28px;
+  border-radius: 18px;
   background: linear-gradient(135deg, rgba(255,200,87,0.10), rgba(233,83,59,0.05) 60%, rgba(91,141,239,0.08));
   border: 1px solid rgba(125,125,140,0.18);
   overflow: hidden;
-  min-height: 0;
-  justify-content: space-between;
+  min-height: 220px;
+}
+.hero--desktop::before {
+  content: 'FIRE2FREE';
+  position: absolute;
+  top: -40px;
+  right: -30px;
+  font-size: 200px;
+  font-weight: 900;
+  letter-spacing: 10px;
+  background: linear-gradient(135deg, rgba(255,138,61,0.12), rgba(123,97,255,0.10));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+.hero--desktop .hero-greeting { z-index: 1; }
+.hero--desktop .hero-title {
+  font-size: 30px;
+  font-weight: 800;
+  margin: 6px 0 4px;
+  background: linear-gradient(90deg, #FF8A3D 0%, #E9533B 60%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.hero--desktop .hero-sub { font-size: 13px; margin: 0; opacity: 0.7; }
+.hero--desktop .hero-statement {
+  font-size: 13px;
+  margin: 10px 0 0;
+  padding: 8px 14px;
+  border-left: 3px solid var(--fire-grad-primary, #FF8A3D);
+  background: rgba(255,200,87,0.10);
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  opacity: 0.92;
+  max-width: 560px;
+}
+.hero--desktop .hero-tags { margin-top: 14px; }
+.hero--desktop .hero-ring { z-index: 1; padding-bottom: 22px; }
+.hero--desktop .hero-meta { display: flex; align-items: center; gap: 18px; justify-content: flex-end; z-index: 1; padding-right: 6px; }
+.hero--desktop .hero-meta-item { text-align: right; }
+.hero--desktop .hero-meta-label { font-size: 11px; opacity: 0.7; }
+.hero--desktop .hero-meta-val { font-size: 22px; font-weight: 700; margin-top: 2px; }
+.hero--desktop .hero-meta-val--sr { color: #FF8A3D; }
+.hero--desktop .hero-meta-divider { width: 1px; height: 36px; background: rgba(125,125,140,0.3); }
+
+/* 平板:桌面 hero 单列居中 */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .hero--desktop { grid-template-columns: 1fr; text-align: center; }
+  .hero--desktop .hero-meta { justify-content: center; }
+  .hero--desktop .hero-meta-divider { display: none; }
+  .hero--desktop .hero-meta-item { text-align: center; }
 }
 
-/* 左列:Logo + 你好标题 + 副标 + 净现金流 chip */
-.hero-left {
+/* ---- 手机 Hero(今天 round-8 紧凑三列) ---- */
+.hero--mobile {
+  display: none;
+  position: relative;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255,200,87,0.10), rgba(233,83,59,0.05) 60%, rgba(91,141,239,0.08));
+  border: 1px solid rgba(125,125,140,0.18);
+  overflow: hidden;
+}
+.hero--mobile .hero-left {
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.hero-left .fire-logo { flex-shrink: 0; min-width: max-content; margin-bottom: 2px; }
-.hero-title {
-  font-size: 22px;
+.hero--mobile .hero-left .fire-logo { flex-shrink: 0; min-width: max-content; margin-bottom: 2px; }
+.hero--mobile .hero-title {
+  font-size: 1rem;
   font-weight: 800;
   margin: 2px 0 0;
   background: linear-gradient(90deg, #FF8A3D 0%, #E9533B 60%);
@@ -476,132 +608,68 @@ function gotoRecord(type) {
   color: transparent;
   line-height: 1.15;
 }
-.hero-sub { font-size: 12px; margin: 0; opacity: 0.7; line-height: 1.4; }
-/* 净现金流 chip:绿底浅色字 / 红底浅色字(中国语境绿=收入 红=支出/负) */
-.hero-cashflow {
-  display: none; /* 桌面隐藏,仅移动端 @media(max-width:768px) 显示 */
+.hero--mobile .hero-sub { font-size: 11px; margin: 0; opacity: 0.7; line-height: 1.4; }
+.hero--mobile .hero-cashflow {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   margin-top: 6px;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   width: fit-content;
   background: rgba(24,160,88,0.14);
   color: #18a058;
 }
-.hero-cashflow.is-neg { background: rgba(233,83,59,0.14); color: #E9533B; }
-.theme-dark .hero-cashflow { background: rgba(24,160,88,0.22); color: #4fcf8e; }
-.theme-dark .hero-cashflow.is-neg { background: rgba(233,83,59,0.22); color: #ff7a5c; }
-.hero-cashflow-label { opacity: 0.85; }
-.hero-cashflow-val { font-variant-numeric: tabular-nums; }
-
-/* 桌面专属元素:FIRE 宣言 + hero-tags + 中列分隔线(移动端隐藏)。
-   还原今早改前的桌面 Hero 观感。 */
-.hero-statement {
-  font-size: 12px;
-  margin: 6px 0 0;
-  padding: 6px 12px;
-  border-left: 3px solid var(--fire-grad-primary, #FF8A3D);
-  background: rgba(255,200,87,0.10);
-  border-radius: 0 8px 8px 0;
-  font-style: italic;
-  opacity: 0.92;
-  max-width: 100%;
-}
-.hero-tags { margin-top: 8px; }
-.hero-mid-divider { width: 36px; height: 1px; background: rgba(125,125,140,0.3); }
-
-/* 中列:储蓄率 + 预计达成 垂直堆叠,整体垂直居中 */
-.hero-mid {
+.hero--mobile .hero-cashflow.is-neg { background: rgba(233,83,59,0.14); color: #E9533B; }
+.theme-dark .hero--mobile .hero-cashflow { background: rgba(24,160,88,0.22); color: #4fcf8e; }
+.theme-dark .hero--mobile .hero-cashflow.is-neg { background: rgba(233,83,59,0.22); color: #ff7a5c; }
+.hero--mobile .hero-cashflow-label { opacity: 0.85; }
+.hero--mobile .hero-cashflow-val { font-variant-numeric: tabular-nums; }
+.hero--mobile .hero-mid {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-width: 80px;
+  min-width: 64px;
 }
-.hero-mid-item {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-}
-.hero-mid-label {
-  font-size: 11px;
-  opacity: 0.65;
-  letter-spacing: 0.3px;
-}
-.hero-mid-val {
-  font-size: 18px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-color, #1a1a1a);
-  line-height: 1.2;
-}
-/* 储蓄率:桌面用默认文字色(非绿,满足"不用绿色"规则);移动端 @media(max-width:768px) 改品牌橙 */
-.hero-mid-val--sr { color: var(--text-color, #1a1a1a); }
-
-/* 右列:进度环 + 底部"达成 X%" chip */
-.hero-ring {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  justify-self: end;
-}
-.hero-ring-svg { display: block; }
-.hero-ring-chip {
-  margin-top: -4px;
-  display: none; /* 桌面隐藏,仅移动端 @media(max-width:768px) 显示 */
+.hero--mobile .hero-mid-item { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0; }
+.hero--mobile .hero-mid-label { font-size: 10px; opacity: 0.65; letter-spacing: 0.3px; }
+.hero--mobile .hero-mid-val { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text-color, #1a1a1a); line-height: 1.2; }
+.hero--mobile .hero-mid-val--sr { color: var(--ring-text-sr, #FF8A3D); }
+.hero--mobile .hero-mid-divider { width: 36px; height: 1px; background: rgba(125,125,140,0.3); }
+.hero--mobile .hero-ring { display: flex; flex-direction: column; align-items: center; gap: 2px; justify-self: end; }
+.hero--mobile .hero-ring-svg { display: block; transform: scale(0.55); transform-origin: center center; }
+.hero--mobile .hero-ring-chip {
+  margin-top: -8px;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   background: linear-gradient(135deg, #5B8DEF, #7B61FF);
   color: #fff;
   white-space: nowrap;
 }
-.hero-ring-chip-label { opacity: 0.92; }
-.hero-ring-chip-val { font-variant-numeric: tabular-nums; }
+.hero--mobile .hero-ring-chip-label { opacity: 0.92; }
+.hero--mobile .hero-ring-chip-val { font-variant-numeric: tabular-nums; }
 
-/* 平板:hero padding 稍紧 */
-@media (max-width: 1024px) and (min-width: 769px) {
-  .hero { padding: 10px 12px; }
-}
-
-/* 手机(≤768px):新的紧凑三列横向并排 + 净现金流chip + 达成chip + 橙色储蓄率。
-   桌面(>768px)走 base 旧布局,这套只作用于移动端。 */
+/* 断点切换:≤768 显手机 hero,隐藏桌面 hero */
 @media (max-width: 768px) {
-  .hero {
-    grid-template-columns: minmax(0, 1fr) auto auto !important;
-    padding: 8px 10px !important;
-    gap: 8px !important;
-    border-radius: 14px;
-  }
-  .hero-title { font-size: 1rem !important; }
-  .hero-sub { font-size: 11px; }
-  /* 移动端专属元素显示,桌面专属元素隐藏 */
-  .hero-cashflow { display: inline-flex !important; font-size: 11px; padding: 3px 8px; }
-  .hero-ring-chip { display: inline-flex !important; font-size: 10px; padding: 2px 8px; margin-top: -8px; }
-  .hero-statement, .hero-tags, .hero-mid-divider { display: none !important; }
-  .hero-mid-val--sr { color: var(--ring-text-sr, #FF8A3D); }
-  .hero-mid { min-width: 64px; }
-  .hero-mid-label { font-size: 10px; }
-  .hero-mid-val { font-size: 15px; }
-  .hero-ring-svg { transform: scale(0.55); transform-origin: center center; }
+  .hero--desktop { display: none !important; }
+  .hero--mobile { display: grid !important; }
 }
 @media (max-width: 480px) {
-  .hero-title { font-size: 0.95rem !important; }
-  .hero-mid-val { font-size: 14px; }
-  .hero-cashflow-label { display: none; }  /* 极窄屏藏 label,chip 留 value */
-  .hero-cashflow { padding: 3px 8px; font-size: 11px; }
-  .hero-left { min-width: 0; }
-  .hero-ring-svg { transform: scale(0.45); transform-origin: center center; }
+  .hero--mobile .hero-title { font-size: 0.95rem !important; }
+  .hero--mobile .hero-mid-val { font-size: 14px; }
+  .hero--mobile .hero-cashflow-label { display: none; }
+  .hero--mobile .hero-cashflow { padding: 3px 8px; font-size: 11px; }
+  .hero--mobile .hero-left { min-width: 0; }
+  .hero--mobile .hero-ring-svg { transform: scale(0.45); transform-origin: center center; }
 }
 
 .stat-row { margin-top: 4px; }
@@ -724,11 +792,14 @@ function gotoRecord(type) {
   .section-title { font-size: 14px; }
   .bet-mini-list { grid-template-columns: 1fr; }
 
-  /* 快捷入口:窄屏一行(标题 + 2 按钮),缩小字号防挤压 */
-  .quick-bar { gap: 8px !important; }
-  .quick-title { font-size: 13px !important; }
-  .qa-btn { padding: 7px 8px !important; gap: 4px !important; font-size: 11px !important; }
-  .qa-label { font-size: 11px !important; }
+  /* 快捷入口:切换桌面/手机 + 手机栏缩小字号防挤压 */
+  .quick--desktop { display: none !important; }
+  .quick--mobile { display: flex !important; }
+  .quick--mobile.section-quick { padding: 12px 16px !important; }
+  .quick--mobile .quick-bar { gap: 8px !important; }
+  .quick--mobile .quick-title { font-size: 13px !important; }
+  .quick--mobile .qa-btn { padding: 7px 8px !important; gap: 4px !important; font-size: 11px !important; }
+  .quick--mobile .qa-label { font-size: 11px !important; }
 }
 
 /* iPhone SE 等 ≤480px 极窄屏:副卡数字再缩一档 */
@@ -738,8 +809,16 @@ function gotoRecord(type) {
   .stat-row > :not(:first-child) .stat-card .stat-foot { font-size: 9.5px !important; }
 }
 
-/* 快捷入口:标题 + 两个按钮 同一行横排 */
-.section-quick { padding: 12px 16px !important; }
+/* 快捷入口:桌面 4 按钮(074de8e)/ 手机 2 按钮(今天 round-8) 双布局 */
+.section-quick { padding: 16px !important; }
+/* 桌面快捷:默认显示;手机隐藏 */
+.quick--desktop { display: flex; }
+/* 手机快捷:桌面隐藏;手机显示 */
+.quick--mobile { display: none; }
+.quick-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.qa-dbtn { padding: 6px 18px; font-weight: 600; }
+
+/* 手机快捷栏:标题 + 2 按钮 同行横排 */
 .quick-bar {
   display: flex;
   align-items: center;
@@ -754,8 +833,8 @@ function gotoRecord(type) {
   font-weight: 700;
 }
 .quick-emoji { font-size: 14px; }
-/* 按钮缩一档:横排 icon+文字 的紧凑 chip */
-.qa-btn {
+/* 手机按钮:横排 icon+文字 的紧凑 chip */
+.quick--mobile .qa-btn {
   flex: 1 1 0;
   display: inline-flex;
   flex-direction: row;
@@ -776,10 +855,10 @@ function gotoRecord(type) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.qa-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px -8px rgba(125,125,140,0.3); background: rgba(125,125,140,0.08); }
-.qa-btn:active { transform: scale(0.97); }
-.qa-btn :deep(svg) { flex-shrink: 0; }
-.qa-label { font-size: 12px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; }
+.quick--mobile .qa-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px -8px rgba(125,125,140,0.3); background: rgba(125,125,140,0.08); }
+.quick--mobile .qa-btn:active { transform: scale(0.97); }
+.quick--mobile .qa-btn :deep(svg) { flex-shrink: 0; }
+.quick--mobile .qa-label { font-size: 12px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; }
 .qa-calc { color: #FF8A3D; }
 .qa-remind { color: #18a058; }
 .qa-bet { color: #7B61FF; }
