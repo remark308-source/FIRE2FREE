@@ -662,8 +662,8 @@ function gotoRecord(type) {
 @media (max-width: 768px) {
   .hero--desktop { display: none !important; }
   .hero--mobile { display: grid !important; }
-  /* 手机版:nudge 储蓄率/预计达成 右 10px、下 3px;进度环再右移 10px */
-  .hero--mobile .hero-mid { transform: translate(41px, 3px); }
+  /* 手机版:中列(储蓄率/预计达成)右移 93px 贴环(距环视觉左沿 5px);进度环右移 41px 保持右贴边 */
+  .hero--mobile .hero-mid { transform: translate(93px, 3px); }
   .hero--mobile .hero-ring { transform: translateX(41px); }
 }
 @media (max-width: 480px) {
