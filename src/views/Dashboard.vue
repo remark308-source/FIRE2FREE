@@ -663,8 +663,8 @@ function gotoRecord(type) {
   .hero--desktop { display: none !important; }
   .hero--mobile { display: grid !important; }
   /* 手机版:nudge 储蓄率/预计达成 右 10px、下 3px;进度环再右移 10px */
-  .hero--mobile .hero-mid { transform: translate(10px, 3px); }
-  .hero--mobile .hero-ring { transform: translateX(10px); }
+  .hero--mobile .hero-mid { transform: translate(41px, 3px); }
+  .hero--mobile .hero-ring { transform: translateX(41px); }
 }
 @media (max-width: 480px) {
   .hero--mobile .hero-title { font-size: 0.95rem !important; }
