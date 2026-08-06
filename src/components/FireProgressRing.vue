@@ -1,7 +1,10 @@
 <script setup>
 /**
- * FIRE 进度环:大数字 + 渐变圆环 + 辅助信息
+ * FIRE 进度环:中心储蓄率+预计达成 + 渐变圆环 + 底部状态徽章
  * 接受 progress(0-1)、target、netAssets 三件套,带 0.8s 动画
+ * 中心文字四行(储蓄率 / 数值 / 预计达成 / 数值),跟随主题切换对比度
+ *   - 浅色主题:label rgba(0,0,0,0.55),main #1a1a1a,savingsRate #FF8A3D
+ *   - 深色主题:label rgba(255,255,255,0.65),main rgba(255,255,255,0.95),savingsRate #FFB36B
  */
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -12,6 +15,7 @@ const props = defineProps({
   target: { type: Number, default: 0 },
   netAssets: { type: Number, default: 0 },
   eta: { type: [Number, null], default: null },
+  savingsRate: { type: Number, default: 0 },
   baseCurrency: { type: String, default: 'CNY' },
   size: { type: Number, default: 220 }
 })
@@ -41,11 +45,13 @@ const CIRC = 2 * Math.PI * RADIUS
 const dashOffset = computed(() => CIRC * (1 - animated.value))
 
 const status = computed(() => {
-  if (props.progress >= 1) return { key: 'aboveTarget', color: '#18a058' }
-  if (props.progress >= 0.5) return { key: 'onTrack', color: '#FF8A3D' }
-  return { key: 'needMore', color: '#5B8DEF' }
+  if (props.progress >= 1) return { key: 'aboveTarget', color: '#FF8A3D' }
+  if (props.progress >= 0.5) return { key: 'onTrack', color: '#FFB36B' }
+  return { key: 'needMore', color: '#FF8A3D' }
 })
 
+// 储蓄率:中国语境下绿色不代表正向,改用品牌主橙 #FF8A3D(浅色) / #FFB36B(深色)
+const savingsRateText = computed(() => fmtPct(props.savingsRate || 0))
 const etaText = computed(() => {
   if (props.eta == null) return '∞'
   if (props.eta < 1) return `~${Math.round(props.eta * 12)} mo`
@@ -86,9 +92,12 @@ const etaText = computed(() => {
         transform="rotate(-90 110 110)"
         filter="url(#ringShadow)"
       />
-      <!-- 中心文字:0.0% 大字 + 已达成 小字,整体居中(相对几何中心 110,110) -->
-      <text x="110" y="108" text-anchor="middle" font-size="36" font-weight="800" fill="currentColor" dominant-baseline="middle">{{ fmtPct(animated) }}</text>
-      <text x="110" y="135" text-anchor="middle" font-size="12" fill="rgba(125,125,140,0.85)" dominant-baseline="middle">{{ $t('dashboard.progressLabel') }}</text>
+      <!-- 中心 4 行:储蓄率 label / 数值 / 预计达成 label / 数值,垂直居中(几何中心 110,110)
+           用 CSS class 控 fill,主题穿透用 :deep 选择外层 .theme-dark/.theme-light -->
+      <text class="ring-label" x="110" y="86" text-anchor="middle" dominant-baseline="middle">{{ $t('dashboard.savingsRate') }}</text>
+      <text class="ring-num ring-sr" x="110" y="113" text-anchor="middle" dominant-baseline="middle">{{ savingsRateText }}</text>
+      <text class="ring-label" x="110" y="143" text-anchor="middle" dominant-baseline="middle">{{ $t('dashboard.etaLabel') }}</text>
+      <text class="ring-num ring-eta" x="110" y="168" text-anchor="middle" dominant-baseline="middle">{{ etaText }}</text>
     </svg>
 
     <div class="ring-meta" :style="{ position: 'absolute', left: 0, right: 0, bottom: '-22px', textAlign: 'center' }">
@@ -98,7 +107,21 @@ const etaText = computed(() => {
 </template>
 
 <style scoped>
-.fire-ring { position: relative; display: inline-block; color: var(--text-color, #1a1a1a); }
+.fire-ring { position: relative; display: inline-block; }
+/* 中心文字 fill 用 CSS 变量(定义在 App.vue :root / .theme-dark),
+   CSS 变量在 SVG 子元素继承,不受 scoped 影响,
+   浅色 / 深色主题各一套自然切换。 */
+.ring-label {
+  font-size: 11px;
+  font-weight: 500;
+  fill: var(--ring-text-label);
+  letter-spacing: 0.5px;
+}
+.ring-num { font-variant-numeric: tabular-nums; }
+/* 储蓄率:中国语境下绿色不表示正向,改品牌主橙(浅色 #FF8A3D,深色提亮 #FFB36B 保对比度) */
+.ring-sr { font-size: 26px; font-weight: 800; fill: var(--ring-text-sr); }
+.ring-eta { font-size: 20px; font-weight: 700; fill: var(--ring-text-main); }
+
 .ring-status {
   display: inline-block;
   color: #fff;

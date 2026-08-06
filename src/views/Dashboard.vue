@@ -191,10 +191,8 @@ function gotoRecord(type) {
 <template>
   <div class="dash-wrap">
     <!-- HERO ============================================== -->
-    <!-- 2 列:greeting(左)+ ring-col(右,ring + meta 上下叠)
-         FIRE2FREE 字样与背景水印全部移除(从独立到自由 tagline 保留) -->
-    <!-- HERO ============================================== -->
-    <!-- 3 列:左(Logo+FIRE2FREE+问候) / 中(储蓄率·预计达成 上下堆叠) / 右(进度环) -->
+    <!-- 2 列:左(Logo+FIRE2FREE+问候+statement+tags) + 右(进度环紧贴右边缘)
+         储蓄率 + 预计达成 现已嵌入 ring 圆环内部(红色箭头所指位置) -->
     <section class="hero">
       <!-- 左列:Logo + FIRE2FREE 字标 + 问候 -->
       <div class="hero-left">
@@ -209,25 +207,13 @@ function gotoRecord(type) {
         </NSpace>
       </div>
 
-      <!-- 中列:储蓄率(上) + 预计达成(下),垂直堆叠 -->
-      <div class="hero-mid">
-        <div class="hero-mid-item">
-          <NText depth="3" style="font-size: 11px">{{ $t('dashboard.savingsRate') }}</NText>
-          <div class="hero-mid-val" style="color: #18a058">{{ fmtPct(fs.savingsRate || 0) }}</div>
-        </div>
-        <div class="hero-mid-divider"></div>
-        <div class="hero-mid-item">
-          <NText depth="3" style="font-size: 11px">{{ $t('dashboard.etaLabel') }}</NText>
-          <div class="hero-mid-val">{{ etaText }}</div>
-        </div>
-      </div>
-
-      <!-- 右列:进度环 -->
+      <!-- 右列:进度环(储蓄率+预计达成在圆环内,整体右对齐) -->
       <div class="hero-ring">
         <FireProgressRing
           :progress="fs.progress"
           :target="fs.target"
           :net-assets="fs.netAssets"
+          :savings-rate="fs.savingsRate"
           :eta="fs.eta"
           :base-currency="base"
           :size="220"
@@ -440,7 +426,7 @@ function gotoRecord(type) {
 .hero {
   position: relative;
   display: grid;
-  grid-template-columns: auto auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
   padding: 12px 16px;
@@ -449,11 +435,10 @@ function gotoRecord(type) {
   border: 1px solid rgba(125,125,140,0.18);
   overflow: hidden;
   min-height: 0;
-  justify-content: space-between;
 }
 /* 左列:Logo + FIRE2FREE 字标 + 问候 */
 .hero-left { z-index: 1; min-width: 0; display: flex; flex-direction: column; }
-.hero-left .fire-logo { margin-bottom: 4px; }
+.hero-left .fire-logo { margin-bottom: 4px; flex-shrink: 0; min-width: max-content; }
 .hero-title {
   font-size: 24px;
   font-weight: 800;
@@ -476,55 +461,30 @@ function gotoRecord(type) {
   opacity: 0.92;
   max-width: 100%;
 }
-/* 中列:储蓄率(上) + 预计达成(下),垂直堆叠于 logo 与 ring 之间 */
-.hero-mid {
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-.hero-mid-item { text-align: center; }
-.hero-mid-divider { width: 36px; height: 1px; background: rgba(125,125,140,0.3); }
-.hero-mid-val { font-size: 18px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
-/* 右列:进度环 */
-.hero-ring { z-index: 1; }
+/* 右列:进度环,justify-self:end 让它紧贴右侧,实现「圆圈整体向右移」 */
+.hero-ring { z-index: 1; justify-self: end; }
 .hero-ring-svg { display: block; }
 
-/* 平板:保持 3 列 */
+/* 平板:保持 2 列 */
 @media (max-width: 1024px) and (min-width: 769px) {
-  .hero { grid-template-columns: auto auto auto; justify-content: space-between; }
+  .hero { grid-template-columns: minmax(0, 1fr) auto; }
 }
 
-/* 手机:上排 [Logo+FIRE2FREE | 进度环],下排 储蓄率·预计达成 上下堆叠并居中 */
+/* 手机:2 列(brand 左 + ring 紧贴右),ring 整体右移保留 */
 @media (max-width: 768px) {
   .hero {
-    grid-template-columns: minmax(150px, 1fr) auto;
-    grid-template-areas:
-      "brand ring"
-      "mid   mid";
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
     text-align: left;
     padding: 10px 12px !important;
-    gap: 6px 10px;
+    gap: 8px !important;
   }
-  .hero-left { grid-area: brand; }
+  .hero-left { min-width: 0; }
   .hero-left .fire-logo { flex-shrink: 0; min-width: max-content; }
-  .hero-ring { grid-area: ring; justify-self: end; align-self: center; }
-  .hero-mid {
-    grid-area: mid;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    margin-top: 4px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(125,125,140,0.15);
-    width: 100%;
-  }
-  .hero-mid-divider { display: none; }
+  .hero-ring { grid-column: 2; justify-self: end; align-self: center; }
   .hero-title { font-size: 1.05rem !important; }
   .hero-statement, .hero-tags { display: none; }
-  .hero-ring-svg { transform: scale(0.5); transform-origin: center center; }
+  .hero-ring-svg { transform: scale(0.6); transform-origin: center center; }
 }
 
 .stat-row { margin-top: 4px; }

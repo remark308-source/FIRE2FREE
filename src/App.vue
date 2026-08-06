@@ -311,6 +311,17 @@ autoResolve()
   --bn-h: calc(58px + env(safe-area-inset-bottom));
   /* 记一笔抽屉默认深色文字(浅色主题由组件内 .qs-light 覆盖) */
   --qs-text: #e6e8f0;
+  /* FIRE 进度环中心文字颜色:浅/深主题各一套,
+     Vue scoped 不会给 SVG <text> 加 data-hash 所以 :deep 不穿透,
+     改用 CSS 变量在 SVG 子元素继承。外层 .theme-dark 覆盖 */
+  --ring-text-label: rgba(0, 0, 0, 0.55);
+  --ring-text-main:  #1a1a1a;
+  --ring-text-sr:    #FF8A3D;
+}
+.theme-dark {
+  --ring-text-label: rgba(255, 255, 255, 0.65);
+  --ring-text-main:  rgba(255, 255, 255, 0.95);
+  --ring-text-sr:    #FFB36B;
 }
 * { font-family: var(--ff-font); }
 .n-card { transition: transform .15s ease, box-shadow .15s ease; }
