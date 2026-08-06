@@ -203,6 +203,10 @@ function gotoRecord(type) {
           {{ langGreeting }}<span v-if="userName">, {{ userName }}</span>
         </h1>
         <p class="hero-sub">{{ $t('dashboard.greeting') }}</p>
+        <p v-if="statement" class="hero-statement">{{ statement }}</p>
+        <NSpace v-if="heroTags.length" class="hero-tags" :size="8">
+          <NTag v-for="(tag, i) in heroTags" :key="i" :type="tag.type" size="small" round>{{ tag.text }}</NTag>
+        </NSpace>
         <div class="hero-cashflow">
           <span class="hero-cashflow-label">{{ $t('dashboard.thisMonthCashflow') }}</span>
           <span class="hero-cashflow-val" :class="monthNet >= 0 ? 'is-pos' : 'is-neg'">
@@ -217,6 +221,7 @@ function gotoRecord(type) {
           <div class="hero-mid-label">{{ $t('dashboard.savingsRate') }}</div>
           <div class="hero-mid-val hero-mid-val--sr">{{ fmtPct(fs.savingsRate || 0) }}</div>
         </div>
+        <div class="hero-mid-divider"></div>
         <div class="hero-mid-item">
           <div class="hero-mid-label">{{ $t('dashboard.etaLabel') }}</div>
           <div class="hero-mid-val">{{ etaText }}</div>
@@ -435,16 +440,22 @@ function gotoRecord(type) {
 /* === HERO ============================================== */
 /* 3 列横向并排:[左 brand 4 行][中 储蓄率+预计达成][右 进度环+底部 chip]
    整体紧凑上移,无大留白。 */
+/* base = 桌面(>768px) 布局:今早改前的 3 列(brand | 中 | ring) + space-between。
+   新的紧凑三列 + 净现金流chip + 达成chip 只在 @media(max-width:768px) 生效,
+   避免改动漏到桌面。 */
 .hero {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: auto auto auto;
   align-items: center;
-  gap: 14px;
-  padding: 10px 14px;
+  gap: 16px;
+  padding: 12px 16px;
   border-radius: 16px;
   background: linear-gradient(135deg, rgba(255,200,87,0.10), rgba(233,83,59,0.05) 60%, rgba(91,141,239,0.08));
   border: 1px solid rgba(125,125,140,0.18);
   overflow: hidden;
+  min-height: 0;
+  justify-content: space-between;
 }
 
 /* 左列:Logo + 你好标题 + 副标 + 净现金流 chip */
@@ -468,7 +479,7 @@ function gotoRecord(type) {
 .hero-sub { font-size: 12px; margin: 0; opacity: 0.7; line-height: 1.4; }
 /* 净现金流 chip:绿底浅色字 / 红底浅色字(中国语境绿=收入 红=支出/负) */
 .hero-cashflow {
-  display: inline-flex;
+  display: none; /* 桌面隐藏,仅移动端 @media(max-width:768px) 显示 */
   align-items: center;
   gap: 6px;
   margin-top: 6px;
@@ -485,6 +496,22 @@ function gotoRecord(type) {
 .theme-dark .hero-cashflow.is-neg { background: rgba(233,83,59,0.22); color: #ff7a5c; }
 .hero-cashflow-label { opacity: 0.85; }
 .hero-cashflow-val { font-variant-numeric: tabular-nums; }
+
+/* 桌面专属元素:FIRE 宣言 + hero-tags + 中列分隔线(移动端隐藏)。
+   还原今早改前的桌面 Hero 观感。 */
+.hero-statement {
+  font-size: 12px;
+  margin: 6px 0 0;
+  padding: 6px 12px;
+  border-left: 3px solid var(--fire-grad-primary, #FF8A3D);
+  background: rgba(255,200,87,0.10);
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  opacity: 0.92;
+  max-width: 100%;
+}
+.hero-tags { margin-top: 8px; }
+.hero-mid-divider { width: 36px; height: 1px; background: rgba(125,125,140,0.3); }
 
 /* 中列:储蓄率 + 预计达成 垂直堆叠,整体垂直居中 */
 .hero-mid {
@@ -514,8 +541,8 @@ function gotoRecord(type) {
   color: var(--text-color, #1a1a1a);
   line-height: 1.2;
 }
-/* 储蓄率:中国语境下绿色不表示正向,改品牌主橙(浅色) / 提亮橙(深色) */
-.hero-mid-val--sr { color: var(--ring-text-sr, #FF8A3D); }
+/* 储蓄率:桌面用默认文字色(非绿,满足"不用绿色"规则);移动端 @media(max-width:768px) 改品牌橙 */
+.hero-mid-val--sr { color: var(--text-color, #1a1a1a); }
 
 /* 右列:进度环 + 底部"达成 X%" chip */
 .hero-ring {
@@ -528,7 +555,7 @@ function gotoRecord(type) {
 .hero-ring-svg { display: block; }
 .hero-ring-chip {
   margin-top: -4px;
-  display: inline-flex;
+  display: none; /* 桌面隐藏,仅移动端 @media(max-width:768px) 显示 */
   align-items: center;
   gap: 4px;
   padding: 3px 10px;
@@ -547,21 +574,26 @@ function gotoRecord(type) {
   .hero { padding: 10px 12px; }
 }
 
-/* 手机:hero 整体缩小,左列净现金流 chip 保留,ring 缩 0.55x */
+/* 手机(≤768px):新的紧凑三列横向并排 + 净现金流chip + 达成chip + 橙色储蓄率。
+   桌面(>768px)走 base 旧布局,这套只作用于移动端。 */
 @media (max-width: 768px) {
   .hero {
+    grid-template-columns: minmax(0, 1fr) auto auto !important;
     padding: 8px 10px !important;
     gap: 8px !important;
     border-radius: 14px;
   }
   .hero-title { font-size: 1rem !important; }
   .hero-sub { font-size: 11px; }
-  .hero-cashflow { font-size: 11px; padding: 3px 8px; }
+  /* 移动端专属元素显示,桌面专属元素隐藏 */
+  .hero-cashflow { display: inline-flex !important; font-size: 11px; padding: 3px 8px; }
+  .hero-ring-chip { display: inline-flex !important; font-size: 10px; padding: 2px 8px; margin-top: -8px; }
+  .hero-statement, .hero-tags, .hero-mid-divider { display: none !important; }
+  .hero-mid-val--sr { color: var(--ring-text-sr, #FF8A3D); }
   .hero-mid { min-width: 64px; }
   .hero-mid-label { font-size: 10px; }
   .hero-mid-val { font-size: 15px; }
   .hero-ring-svg { transform: scale(0.55); transform-origin: center center; }
-  .hero-ring-chip { font-size: 10px; padding: 2px 8px; margin-top: -8px; }
 }
 @media (max-width: 480px) {
   .hero-title { font-size: 0.95rem !important; }
