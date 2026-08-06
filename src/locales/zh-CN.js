@@ -29,7 +29,8 @@ export default {
     bets: '自我对赌',
     report: '月度报告',
     settings: '设置',
-    more: '更多'
+    more: '更多',
+    menu: '菜单'
   },
   common: {
     save: '保存',

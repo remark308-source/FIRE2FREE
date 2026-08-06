@@ -29,7 +29,8 @@ export default {
     bets: 'Commitment',
     report: 'Monthly Report',
     settings: 'Settings',
-    more: 'More'
+    more: 'More',
+    menu: 'Menu'
   },
   common: {
     save: 'Save',

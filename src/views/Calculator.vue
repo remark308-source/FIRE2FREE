@@ -87,7 +87,11 @@ const scenarios = computed(() => {
 </template>
 
 <style scoped>
-.calc-wrap { display: flex; flex-direction: column; width: 350px; height: 500px; overflow: auto; }
+/* 手机/平板:全宽响应式(回 350×500 前的上一版);桌面(≥769px)才用 350×500 固定框 */
+.calc-wrap { display: flex; flex-direction: column; }
+@media (min-width: 769px) {
+  .calc-wrap { width: 350px; height: 500px; overflow: auto; }
+}
 .calc-title { margin: 0 0 12px; font-size: 17px; font-weight: 700; }
 
 /* 3 列网格:col 1-2 各 2x1(共 4 个小格),col 3 跨 2 行(达成进度 大字) */

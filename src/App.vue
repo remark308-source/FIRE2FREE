@@ -13,9 +13,6 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 
 import FireLogo from '@/components/icons/FireLogo.vue'
-import IconDashboard from '@/components/icons/IconDashboard.vue'
-import IconIncome from '@/components/icons/IconIncome.vue'
-import IconExpense from '@/components/icons/IconExpense.vue'
 import IconInvest from '@/components/icons/IconInvest.vue'
 import IconCalculator from '@/components/icons/IconCalculator.vue'
 import IconReminders from '@/components/icons/IconReminders.vue'
@@ -72,18 +69,9 @@ function handleMenu(key) {
   if (isMobile.value) mobileDrawerOpen.value = false
 }
 
-// ====== 移动端底部 Tab 栏(参考 MoneyFlow 的顺手导航) ======
-// 4 个主入口:仪表盘 / 收入 / 支出 / 更多(打开全功能抽屉)。
-// 悬浮 + 按钮「记一笔」一步呼起底部录入抽屉,强化核心记账流程。
+// 移动端:左上汉堡按钮点开左侧抽屉(替代原底部「更多」tab),
+// 悬浮「记一笔」FAB 一步呼起底部录入抽屉,强化核心记账流程。
 const quickOpen = ref(false)
-const primaryTabs = ['dashboard', 'income', 'expense']
-const moreActive = computed(() => !primaryTabs.includes(activeKey.value))
-function goTab(key) {
-  router.push({ name: key })
-}
-function openMore() {
-  mobileDrawerOpen.value = true
-}
 
 const langOptions = computed(() => {
   const zh = app.profile.locale === 'zh-CN'
@@ -208,25 +196,14 @@ autoResolve()
                 </NLayoutContent>
               </NLayout>
 
-              <!-- 底部 Tab 栏(参考 MoneyFlow 顺手导航) -->
-              <nav class="bottom-nav">
-                <button class="bn-item" :class="{ active: activeKey === 'dashboard' }" type="button" @click="goTab('dashboard')">
-                  <IconDashboard class="bn-ic" />
-                  <span class="bn-label">{{ t('nav.dashboard') }}</span>
-                </button>
-                <button class="bn-item" :class="{ active: activeKey === 'income' }" type="button" @click="goTab('income')">
-                  <IconIncome class="bn-ic" />
-                  <span class="bn-label">{{ t('nav.income') }}</span>
-                </button>
-                <button class="bn-item" :class="{ active: activeKey === 'expense' }" type="button" @click="goTab('expense')">
-                  <IconExpense class="bn-ic" />
-                  <span class="bn-label">{{ t('nav.expense') }}</span>
-                </button>
-                <button class="bn-item" :class="{ active: moreActive }" type="button" @click="openMore">
-                  <svg class="bn-ic" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg>
-                  <span class="bn-label">{{ t('nav.more') }}</span>
-                </button>
-              </nav>
+              <!-- 左上角汉堡按钮:替代原底部「更多」tab,仅移动端渲染,点开左侧抽屉 -->
+              <button class="menu-fab" type="button" :aria-label="t('nav.menu')" @click="mobileDrawerOpen = true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                  <line x1="4" y1="7" x2="20" y2="7" />
+                  <line x1="4" y1="12" x2="20" y2="12" />
+                  <line x1="4" y1="17" x2="20" y2="17" />
+                </svg>
+              </button>
 
               <!-- 悬浮记账按钮(核心记账流程一步呼起) -->
               <button class="fab" type="button" :aria-label="t('quick.title')" @click="quickOpen = true">
@@ -308,7 +285,6 @@ autoResolve()
   --fs-lg: 18px;
   --fs-xl: 22px;
   /* 底部 Tab 栏高度(含安全区) */
-  --bn-h: calc(58px + env(safe-area-inset-bottom));
   /* 记一笔抽屉默认深色文字(浅色主题由组件内 .qs-light 覆盖) */
   --qs-text: #e6e8f0;
   /* FIRE 进度环中心文字颜色:浅/深主题各一套,
@@ -366,61 +342,41 @@ autoResolve()
 .drawer-foot { margin-top: 18px; padding: 16px 0 8px; display: flex; flex-direction: column; align-items: center; gap: 8px; border-top: 1px solid rgba(125,125,140,0.18); }
 .drawer-foot-title { font-size: 11px; font-weight: 700; opacity: 0.55; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
 
-/* ===== 移动端内容区:顶部避让状态栏安全区,底部避让底部 Tab 栏 ===== */
+/* ===== 移动端内容区:顶部避让汉堡按钮 + 状态栏安全区,底部避让 FAB ===== */
 .mobile-content {
-  padding: calc(12px + env(safe-area-inset-top)) 12px calc(var(--bn-h) + 12px) 12px;
+  padding: calc(58px + env(safe-area-inset-top)) 12px calc(90px + env(safe-area-inset-bottom)) 12px;
 }
 
-/* ===== 底部 Tab 栏(参考 MoneyFlow 顺手导航) ===== */
-.bottom-nav {
+/* (移动端底部 Tab 栏已移除,改由左上汉堡按钮打开抽屉) */
+
+/* ===== 左上角汉堡按钮:替代原底部「更多」tab,仅移动端渲染 ===== */
+.menu-fab {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 800;
-  height: var(--bn-h);
+  left: 14px;
+  top: calc(14px + env(safe-area-inset-top));
+  z-index: 860;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(125, 125, 140, 0.22);
+  background: rgba(17, 20, 38, 0.72);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: #e6e8f0;
   display: flex;
-  align-items: stretch;
-  padding-bottom: env(safe-area-inset-bottom);
-  background: rgba(17, 20, 38, 0.92);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-  border-top: 1px solid rgba(125, 125, 140, 0.18);
-}
-.bn-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  border: none;
-  background: transparent;
-  color: #8a90a6;
   cursor: pointer;
-  position: relative;
-  transition: color 0.18s ease, transform 0.1s ease;
+  box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.5);
+  transition: transform 0.12s ease, background 0.15s ease;
 }
-.bn-item:active { transform: scale(0.94); }
-.bn-ic { width: 23px; height: 23px; }
-.bn-label { font-size: var(--fs-xs); font-weight: 500; line-height: 1; }
-.bn-item.active { color: #6ea0ff; }
-/* 激活指示条(渐变下划线,MoneyFlow 风格) */
-.bn-item.active::after {
-  content: '';
-  position: absolute;
-  top: 6px;
-  width: 22px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--fire-grad-blue);
-}
+.menu-fab:active { transform: scale(0.9); }
 
 /* ===== 悬浮记账按钮(核心记账流程一步呼起) ===== */
 .fab {
   position: fixed;
   right: 18px;
-  bottom: calc(var(--bn-h) + 14px);
+  bottom: calc(18px + env(safe-area-inset-bottom));
   z-index: 850;
   width: 56px;
   height: 56px;
@@ -440,10 +396,13 @@ autoResolve()
 /* 卡片点击微反馈(提升触感) */
 .n-card:active { transform: scale(0.99); }
 
-/* 浅色主题:底部栏与 FAB 适配 */
-.theme-light .bottom-nav { background: rgba(255, 255, 255, 0.94); border-top-color: rgba(0, 0, 0, 0.08); }
-.theme-light .bn-item { color: #7a8098; }
-.theme-light .bn-item.active { color: #3b6fe0; }
+/* 浅色主题:FAB 与汉堡按钮适配 */
+.theme-light .menu-fab {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(0, 0, 0, 0.10);
+  color: #1a1a1a;
+  box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.25);
+}
 .theme-light .fab { box-shadow: 0 10px 24px -6px rgba(91, 141, 239, 0.4); }
 
 /* ===== 移动端适配(≤768px)全局收尾 ===== */
