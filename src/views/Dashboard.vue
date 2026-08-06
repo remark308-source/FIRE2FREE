@@ -191,8 +191,8 @@ function gotoRecord(type) {
 <template>
   <div class="dash-wrap">
     <!-- HERO ============================================== -->
-    <!-- 2 列:左(Logo+FIRE2FREE+问候+statement+tags) + 右(进度环紧贴右边缘)
-         储蓄率 + 预计达成 现已嵌入 ring 圆环内部(红色箭头所指位置) -->
+    <!-- 3 列:左(Logo+FIRE2FREE+问候) / 中(储蓄率+预计达成 上下堆叠) / 右(进度环)
+         储蓄率使用品牌橙(中国语境下绿色不表示正向);进度环内只显达成百分比+已达成。 -->
     <section class="hero">
       <!-- 左列:Logo + FIRE2FREE 字标 + 问候 -->
       <div class="hero-left">
@@ -207,15 +207,23 @@ function gotoRecord(type) {
         </NSpace>
       </div>
 
-      <!-- 右列:进度环(储蓄率+预计达成在圆环内,整体右对齐) -->
+      <!-- 中列:储蓄率(上)+ 预计达成(下),垂直堆叠于 Logo 与进度环之间 -->
+      <div class="hero-mid">
+        <div class="hero-mid-item">
+          <div class="hero-mid-label">{{ $t('dashboard.savingsRate') }}</div>
+          <div class="hero-mid-val hero-mid-val--sr">{{ fmtPct(fs.savingsRate || 0) }}</div>
+        </div>
+        <div class="hero-mid-divider"></div>
+        <div class="hero-mid-item">
+          <div class="hero-mid-label">{{ $t('dashboard.etaLabel') }}</div>
+          <div class="hero-mid-val">{{ etaText }}</div>
+        </div>
+      </div>
+
+      <!-- 右列:进度环(只显达成百分比+已达成) -->
       <div class="hero-ring">
         <FireProgressRing
           :progress="fs.progress"
-          :target="fs.target"
-          :net-assets="fs.netAssets"
-          :savings-rate="fs.savingsRate"
-          :eta="fs.eta"
-          :base-currency="base"
           :size="220"
           class="hero-ring-svg"
         />
@@ -426,7 +434,7 @@ function gotoRecord(type) {
 .hero {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(150px, 1fr) auto auto;
   align-items: center;
   gap: 16px;
   padding: 12px 16px;
@@ -435,6 +443,7 @@ function gotoRecord(type) {
   border: 1px solid rgba(125,125,140,0.18);
   overflow: hidden;
   min-height: 0;
+  justify-content: space-between;
 }
 /* 左列:Logo + FIRE2FREE 字标 + 问候 */
 .hero-left { z-index: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -461,30 +470,70 @@ function gotoRecord(type) {
   opacity: 0.92;
   max-width: 100%;
 }
-/* 右列:进度环,justify-self:end 让它紧贴右侧,实现「圆圈整体向右移」 */
+/* 中列:储蓄率(上)+ 预计达成(下),垂直堆叠 */
+.hero-mid {
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 100px;
+}
+.hero-mid-item { text-align: center; }
+.hero-mid-label { font-size: 11px; opacity: 0.65; letter-spacing: 0.3px; }
+.hero-mid-val {
+  font-size: 18px;
+  font-weight: 700;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-color, #1a1a1a);
+}
+/* 储蓄率:中国语境下绿色不表示正向,改品牌主橙(浅色) / 提亮橙(深色) */
+.hero-mid-val--sr { color: var(--ring-text-sr, #FF8A3D); }
+.hero-mid-divider {
+  width: 36px;
+  height: 1px;
+  background: rgba(125,125,140,0.3);
+}
+/* 右列:进度环,justify-self:end 让它紧贴右侧 */
 .hero-ring { z-index: 1; justify-self: end; }
 .hero-ring-svg { display: block; }
 
-/* 平板:保持 2 列 */
+/* 平板:保持 3 列 */
 @media (max-width: 1024px) and (min-width: 769px) {
-  .hero { grid-template-columns: minmax(0, 1fr) auto; }
+  .hero { grid-template-columns: minmax(150px, 1fr) auto auto; justify-content: space-between; }
 }
 
-/* 手机:2 列(brand 左 + ring 紧贴右),ring 整体右移保留 */
+/* 手机:上排 [Logo+FIRE2FREE | 进度环],下排 储蓄率·预计达成 跨整行居中 */
 @media (max-width: 768px) {
   .hero {
-    grid-template-columns: minmax(0, 1fr) auto !important;
-    align-items: center !important;
+    grid-template-columns: minmax(150px, 1fr) auto !important;
+    grid-template-areas:
+      "brand ring"
+      "mid   mid";
+    align-items: center;
     text-align: left;
     padding: 10px 12px !important;
-    gap: 8px !important;
+    gap: 8px 10px;
   }
-  .hero-left { min-width: 0; }
+  .hero-left { grid-area: brand; }
   .hero-left .fire-logo { flex-shrink: 0; min-width: max-content; }
-  .hero-ring { grid-column: 2; justify-self: end; align-self: center; }
+  .hero-ring { grid-area: ring; justify-self: end; align-self: center; }
+  .hero-mid {
+    grid-area: mid;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 18px;
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(125,125,140,0.15);
+    width: 100%;
+  }
+  .hero-mid-divider { display: none; }
   .hero-title { font-size: 1.05rem !important; }
   .hero-statement, .hero-tags { display: none; }
-  .hero-ring-svg { transform: scale(0.6); transform-origin: center center; }
+  .hero-ring-svg { transform: scale(0.55); transform-origin: center center; }
 }
 
 .stat-row { margin-top: 4px; }
@@ -529,24 +578,9 @@ function gotoRecord(type) {
    这里进一步压缩 hero / stat-card / section 的内边距与字号,
    并把 bet-mini-list 改为单列避免横向溢出。 */
 @media (max-width: 768px) {
-  /* Hero 大幅压缩:2 列布局(greeting + ring 并排)+ meta 在下面一行
-     — 占满 326px 屏也只需 ~190px 高,留更多空间给下面数据。 */
-  .hero {
-    grid-template-columns: 1fr auto !important;
-    text-align: left !important;
-    padding: 12px 14px !important;
-    gap: 8px !important;
-    border-radius: 12px;
-    min-height: 0 !important;
-  }
-  .hero-logo-line { justify-content: flex-start; }
-  .hero-title { font-size: 1.1rem !important; margin: 4px 0 2px; }
-  .hero-sub { font-size: 12px; }
-  .hero-statement { font-size: 12px; padding: 6px 10px; max-width: 100%; }
-  .hero-ring { padding-bottom: 0; }
-  /* 进度环 scale 0.55(原 0.7),在 326px 屏上不挤 */
-  .hero-ring-svg { transform: scale(0.55); transform-origin: center center; }
-  /* 移动端 meta 已在 ring 下,与 ring 一起居中,无需额外调整 */
+  /* hero 排版在前面 @media(max-width:768px) 已设置(3 列→手机 2 行 brand|ring + mid 跨行),
+     这里不重复覆盖,避免冲突。 */
+
   /* FIRE 目标卡片脚注(月支出 × 倍数)手机版 nowrap */
   .stat-card .stat-foot {
     white-space: nowrap;
@@ -565,13 +599,8 @@ function gotoRecord(type) {
        └───────────┴───────────┘
      数字都可以完整显示(主卡 ~316px 宽,副卡 ~152px 宽)。
      5 横排硬塞在 326px 里数字物理截字严重,这个布局是极限下的最优解。 */
-  .hero { padding: 12px 14px !important; gap: 8px !important; border-radius: 12px; }
-  .hero-title { font-size: 1.1rem !important; }
-  .hero-sub { font-size: 12px; }
-  .hero-statement { font-size: 12px; }
-  .hero-meta { gap: 0; padding: 0; width: 100%; justify-content: space-around; }
-  .hero-meta-item { font-size: 12px; }
-  .hero-meta-divider { height: 28px; }
+  /* hero 排版在前面 @media(max-width:768px) 已设置(3 列→手机 2 行 brand|ring + mid 跨行),
+     这里不重复覆盖,避免冲突。 */
 
   /* stat-row 1+2+2 布局 */
   .stat-row {
