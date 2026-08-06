@@ -43,27 +43,20 @@ const proxyShow = computed({
   set: (v) => emit('update:show', v)
 })
 
-// === 精简分类 ===============================================
-// 支出 8 个:餐饮/交通/购物/娱乐/居住/医疗/教育/其他(其余原 key 折入"其他")
-// 收入 4 个(本来就是 4 个,保留)
-const EXPENSE_CATS = [
-  { key: 'food',           zh: '餐饮', en: 'Food' },
-  { key: 'transport',      zh: '交通', en: 'Transport' },
-  { key: 'shopping',       zh: '购物', en: 'Shopping' },
-  { key: 'entertainment',  zh: '娱乐', en: 'Entertainment' },
-  { key: 'housing',        zh: '居住', en: 'Housing' },
-  { key: 'medical',        zh: '医疗', en: 'Medical' },
-  { key: 'education',      zh: '教育', en: 'Education' },
-  { key: 'other',          zh: '其他', en: 'Other' }
-]
-const INCOME_CATS = [
-  { key: 'salary',     zh: '工资', en: 'Salary' },
-  { key: 'bonus',      zh: '奖金', en: 'Bonus' },
-  { key: 'side_hustle',zh: '副业', en: 'Side Hustle' },
-  { key: 'other',      zh: '其他', en: 'Other' }
-]
-const catList = computed(() => (type.value === 'income' ? INCOME_CATS : EXPENSE_CATS))
-const labelOf = (c) => (c.key === 'other' ? t('common.other') : app.profile.locale === 'zh-CN' ? c.zh : c.en)
+// === 分类(从 store 取,自动合并 constants + 用户自定义) ===
+// 支出完整列表(constants.expenseDaily 15 项),其他旧 key 也保留;
+// 收入保持原 4 项(salary/bonus/side_hustle/other)
+const labelOf = (c) => (app.profile.locale === 'zh-CN' ? c.zh : c.en)
+const catList = computed(() =>
+  type.value === 'income'
+    ? [
+        { key: 'salary',      zh: '工资', en: 'Salary' },
+        { key: 'bonus',       zh: '奖金', en: 'Bonus' },
+        { key: 'side_hustle', zh: '副业', en: 'Side Hustle' },
+        { key: 'other',       zh: t('common.other'), en: t('common.other') }
+      ]
+    : (app.categories?.expenseDaily || [])
+)
 
 // 分类色板(8 类,4 列)
 const palette = ['#FF8A3D', '#5B8DEF', '#FF6B9D', '#7B61FF', '#18a058', '#E9533B', '#36ad6a', '#C147E9']
@@ -415,12 +408,15 @@ function save() {
   color: #fff;
 }
 .qe-cat-name {
-  font-size: 11px;
+  font-size: 11.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  color: #e6e8f0;
+  font-weight: 500;
 }
+.theme-light .qe-cat-name { color: #1a1a1a; }
 
 /* 备注 + 日期(2 列) */
 .qe-row {

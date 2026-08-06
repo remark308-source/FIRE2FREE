@@ -530,6 +530,28 @@ function buildColumns(acc) {
 .grad-violet { background: var(--fire-grad-violet); }
 .grad-orange { background: var(--fire-grad-orange); }
 
+/* 移动端:4 张 stat 卡强制 2x2 网格(覆盖 NSpace 默认 200px min-width) */
+@media (max-width: 640px) {
+  .invest-page .stat-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+  .invest-page .stat-card {
+    flex: none !important;
+    min-width: 0 !important;
+  }
+  .invest-page .stat-card :deep(.n-card__content) {
+    padding: 14px 12px 12px !important;
+  }
+  .invest-page .stat-num { font-size: 19px !important; }
+  .invest-page .stat-top { font-size: 11px !important; }
+}
+
+@media (max-width: 380px) {
+  .invest-page .stat-num { font-size: 17px !important; }
+}
+
 .section-head { display: flex; align-items: center; justify-content: space-between; margin: 8px 0 16px; }
 .section-title { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px; }
 .account-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }

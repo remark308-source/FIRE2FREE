@@ -86,9 +86,9 @@ const etaText = computed(() => {
         transform="rotate(-90 110 110)"
         filter="url(#ringShadow)"
       />
-      <!-- 中心文字 -->
-      <text x="110" y="100" text-anchor="middle" font-size="38" font-weight="800" fill="currentColor">{{ fmtPct(animated) }}</text>
-      <text x="110" y="130" text-anchor="middle" font-size="12" fill="rgba(125,125,140,0.85)">{{ $t('dashboard.progressLabel') }}</text>
+      <!-- 中心文字:0.0% 大字 + 已达成 小字,整体居中(相对几何中心 110,110) -->
+      <text x="110" y="108" text-anchor="middle" font-size="36" font-weight="800" fill="currentColor" dominant-baseline="middle">{{ fmtPct(animated) }}</text>
+      <text x="110" y="135" text-anchor="middle" font-size="12" fill="rgba(125,125,140,0.85)" dominant-baseline="middle">{{ $t('dashboard.progressLabel') }}</text>
     </svg>
 
     <div class="ring-meta" :style="{ position: 'absolute', left: 0, right: 0, bottom: '-22px', textAlign: 'center' }">

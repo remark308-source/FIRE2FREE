@@ -191,25 +191,22 @@ function gotoRecord(type) {
 <template>
   <div class="dash-wrap">
     <!-- HERO ============================================== -->
+    <!-- 2 列:greeting(左)+ ring-col(右,ring + meta 上下叠)
+         FIRE2FREE 字样与背景水印全部移除(从独立到自由 tagline 保留) -->
     <section class="hero">
       <div class="hero-greeting">
-        <div class="hero-logo-line">
-          <FireLogo :size="32" :show-wordmark="true" />
-        </div>
-        <NText depth="2" style="font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; opacity: 0.65; display: block; margin-top: 6px">
-          {{ $t('app.title') }}
-        </NText>
+        <FireLogo :size="32" :show-wordmark="false" />
         <h1 class="hero-title">
           {{ langGreeting }}<span v-if="userName">, {{ userName }}</span>
         </h1>
         <p class="hero-sub">{{ $t('dashboard.greeting') }}</p>
-        <p v-if="statement" class="hero-statement">"{{ statement }}"</p>
+        <p v-if="statement" class="hero-statement">“{{ statement }}”</p>
         <NSpace size="small" style="margin-top: 10px" :wrap="true">
           <NTag v-for="(tag, i) in heroTags" :key="i" :type="tag.type" round size="small">{{ tag.text }}</NTag>
         </NSpace>
       </div>
 
-      <div class="hero-ring">
+      <div class="hero-ring-col">
         <FireProgressRing
           :progress="fs.progress"
           :target="fs.target"
@@ -219,17 +216,17 @@ function gotoRecord(type) {
           :size="220"
           class="hero-ring-svg"
         />
-      </div>
-
-      <div class="hero-meta">
-        <div class="hero-meta-item">
-          <NText depth="3" style="font-size: 11px">{{ $t('dashboard.etaLabel') }}</NText>
-          <div class="hero-meta-val">{{ etaText }}</div>
-        </div>
-        <div class="hero-meta-divider"></div>
-        <div class="hero-meta-item">
-          <NText depth="3" style="font-size: 11px">{{ $t('dashboard.savingsRate') }}</NText>
-          <div class="hero-meta-val" style="color: #18a058">{{ fmtPct(fs.savingsRate || 0) }}</div>
+        <!-- 储蓄率 + 预计达成:放在 ring 正下方,与 ring 同列垂直居中 -->
+        <div class="hero-meta">
+          <div class="hero-meta-item">
+            <NText depth="3" style="font-size: 11px">{{ $t('dashboard.etaLabel') }}</NText>
+            <div class="hero-meta-val">{{ etaText }}</div>
+          </div>
+          <div class="hero-meta-divider"></div>
+          <div class="hero-meta-item">
+            <NText depth="3" style="font-size: 11px">{{ $t('dashboard.savingsRate') }}</NText>
+            <div class="hero-meta-val" style="color: #18a058">{{ fmtPct(fs.savingsRate || 0) }}</div>
+          </div>
         </div>
       </div>
     </section>
@@ -438,68 +435,62 @@ function gotoRecord(type) {
 .hero {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 24px;
-  padding: 24px 28px;
-  border-radius: 18px;
+  gap: 16px;
+  padding: 14px 18px;
+  border-radius: 16px;
   background: linear-gradient(135deg, rgba(255,200,87,0.10), rgba(233,83,59,0.05) 60%, rgba(91,141,239,0.08));
   border: 1px solid rgba(125,125,140,0.18);
   overflow: hidden;
-  min-height: 200px;
+  min-height: 0;
 }
-.hero::before {
-  content: 'FIRE2FREE';
-  position: absolute;
-  top: -32px;
-  right: -20px;
-  font-size: 180px;
-  font-weight: 900;
-  letter-spacing: 8px;
-  background: linear-gradient(135deg, rgba(255,138,61,0.12), rgba(123,97,255,0.10));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  pointer-events: none;
-  user-select: none;
-  z-index: 0;
-  white-space: nowrap;
-}
-.hero-greeting { z-index: 1; }
+.hero-greeting { z-index: 1; min-width: 0; }
 .hero-logo-line { display: flex; align-items: center; }
 .hero-title {
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 800;
-  margin: 6px 0 4px;
+  margin: 4px 0 2px;
   background: linear-gradient(90deg,#FF8A3D 0%, #E9533B 60%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   line-height: 1.15;
 }
-.hero-sub { font-size: 13px; margin: 0; opacity: 0.7; }
+.hero-sub { font-size: 12px; margin: 0; opacity: 0.7; }
 .hero-statement {
-  font-size: 13px;
-  margin: 8px 0 0;
-  padding: 8px 14px;
+  font-size: 12px;
+  margin: 6px 0 0;
+  padding: 6px 12px;
   border-left: 3px solid var(--fire-grad-primary, #FF8A3D);
   background: rgba(255,200,87,0.10);
   border-radius: 0 8px 8px 0;
   font-style: italic;
   opacity: 0.92;
-  max-width: 560px;
+  max-width: 100%;
 }
-.hero-ring { z-index: 1; padding-bottom: 18px; }
-.hero-meta { display: flex; align-items: center; gap: 18px; justify-content: flex-end; z-index: 1; padding-right: 6px; }
-.hero-meta-item { text-align: right; }
-.hero-meta-divider { width: 1px; height: 36px; background: rgba(125,125,140,0.3); }
-.hero-meta-val { font-size: 22px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+/* 右列:ring 在上 + meta 在下,垂直堆叠,meta 与 ring 居中对齐 */
+.hero-ring-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 1;
+}
+.hero-ring { padding-bottom: 0; }
+.hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  justify-content: center;
+  width: 100%;
+}
+.hero-meta-item { text-align: center; flex: 1; }
+.hero-meta-divider { width: 1px; height: 28px; background: rgba(125,125,140,0.3); }
+.hero-meta-val { font-size: 18px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 1024px) {
   .hero { grid-template-columns: 1fr; text-align: center; }
-  .hero-meta { justify-content: center; }
-  .hero-meta-divider { display: none; }
-  .hero-meta-item { text-align: center; }
   .hero-logo-line { justify-content: center; }
 }
 
@@ -562,19 +553,7 @@ function gotoRecord(type) {
   .hero-ring { padding-bottom: 0; }
   /* 进度环 scale 0.55(原 0.7),在 326px 屏上不挤 */
   .hero-ring-svg { transform: scale(0.55); transform-origin: center center; }
-  /* 移动端 meta 移到最底整行,2 列:达成 | 储蓄率 */
-  .hero-meta { gap: 0; padding: 0; width: 100%; justify-content: space-around; }
-  .hero-meta-divider { display: none; }
-  .hero-meta-item { text-align: center; flex: 1; }
-  .hero-meta-val { font-size: 16px !important; }
-  /* 大字水印在手机端缩到 60px,保证完整显示(原 70px 仍会被切) */
-  .hero::before {
-    font-size: 60px !important;
-    top: -8px !important;
-    right: -8px !important;
-    letter-spacing: 3px !important;
-  }
-
+  /* 移动端 meta 已在 ring 下,与 ring 一起居中,无需额外调整 */
   /* FIRE 目标卡片脚注(月支出 × 倍数)手机版 nowrap */
   .stat-card .stat-foot {
     white-space: nowrap;
