@@ -1,0 +1,17 @@
+{
+  "envId": "{{env.ENV_ID}}",
+  "framework": {
+    "name": "fire2free",
+    "plugins": {
+      "website": {
+        "use": "@cloudbase/framework-plugin-website",
+        "inputs": {
+          "outputPath": "dist",
+          "installCommand": "echo skip",
+          "buildCommand": "echo skip",
+          "cloudPath": "/fire2free"
+        }
+      }
+    }
+  }
+}
