@@ -17,6 +17,7 @@ const message = useMessage()
 const type = ref('active')
 const form = ref({ date: Date.now(), category: 'salary', amount: null, currency: 'CNY', note: '' })
 const justAddedId = ref(null)
+const editingId = ref(null) // 非空表示当前在编辑该行
 
 // 切换标签时,把 category 重置为该类型列表的第一个选项
 // (否则切到 passive 时 form.category 仍是 'salary',NSelect 会显示原始 key)
@@ -103,17 +104,46 @@ function copyLast() {
 
 function submit() {
   if (!form.value.amount || Number(form.value.amount) <= 0) return message.warning(t('income.amountHint'))
-  const row = app.add('incomes', {
+  const payload = {
     type: type.value,
     date: dayjs(form.value.date).format('YYYY-MM-DD'),
     category: form.value.category,
     amount: Number(form.value.amount),
     currency: form.value.currency,
     note: form.value.note
-  })
+  }
+  if (editingId.value) {
+    app.update('incomes', editingId.value, payload)
+    fireSave(t('common.updated'))
+    justAddedId.value = editingId.value
+    setTimeout(() => (justAddedId.value = null), 1600)
+    cancelEdit()
+    return
+  }
+  const row = app.add('incomes', payload)
   fireSave(t('income.saved'))
   justAddedId.value = row.id
   setTimeout(() => (justAddedId.value = null), 1600)
+  form.value = { date: Date.now(), category: (type.value === 'active' ? app.categories.incomeActive : app.categories.incomePassive)[0].key, amount: null, currency: app.baseCurrency, note: '' }
+}
+
+// 编辑某行:把表单填上该行数据,editingId 设为该行 id;点保存调 update,点取消清空
+function editRow(r) {
+  // 切到该行对应的类型 tab(否则 form.category 不属于当前类型的列表)
+  if (r.type !== type.value) type.value = r.type
+  editingId.value = r.id
+  form.value = {
+    date: dayjs(r.date).valueOf(),
+    category: r.category,
+    amount: Number(r.amount),
+    currency: r.currency,
+    note: r.note || ''
+  }
+  // 滚到表单顶部
+  if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+function cancelEdit() {
+  editingId.value = null
   form.value = { date: Date.now(), category: (type.value === 'active' ? app.categories.incomeActive : app.categories.incomePassive)[0].key, amount: null, currency: app.baseCurrency, note: '' }
 }
 
@@ -133,12 +163,28 @@ const columns = computed(() => [
   {
     title: '',
     key: 'op',
+    width: 140,
     render: (r) =>
-      h(
-        NPopconfirm,
-        { onPositiveClick: () => app.remove('incomes', r.id) },
-        { trigger: () => h(NButton, { size: 'small', type: 'error', quaternary: true }, () => t('common.delete')), default: () => t('common.deleteConfirm') }
-      )
+      h(NSpace, { size: 8, justify: 'end' }, () => [
+        h(
+          NButton,
+          {
+            size: 'small',
+            type: 'primary',
+            quaternary: true,
+            onClick: () => editRow(r)
+          },
+          () => t('common.edit')
+        ),
+        h(
+          NPopconfirm,
+          { onPositiveClick: () => { if (editingId.value === r.id) cancelEdit(); app.remove('incomes', r.id) } },
+          {
+            trigger: () => h(NButton, { size: 'small', type: 'error', quaternary: true }, () => t('common.delete')),
+            default: () => t('common.deleteConfirm')
+          }
+        )
+      ])
   }
 ])
 const rowProps = (r) => ({ class: r.id === justAddedId.value ? 'row-just-added' : '' })
@@ -151,7 +197,7 @@ const rowProps = (r) => ({ class: r.id === justAddedId.value ? 'row-just-added' 
       <NTabPane name="active" :tab="t('income.active')" />
       <NTabPane name="passive" :tab="t('income.passive')" />
     </NTabs>
-    <NCard :title="t('income.title')" style="margin-top: 12px">
+    <NCard :title="editingId ? t('common.edit') + ' · ' + t('income.title') : t('income.title')" style="margin-top: 12px">
       <NForm :model="form" :show-feedback="false" class="entry-form">
         <NFormItem :label="t('common.date')">
           <NDatePicker v-model:value="form.date" type="date" style="width: 100%" />
@@ -169,8 +215,9 @@ const rowProps = (r) => ({ class: r.id === justAddedId.value ? 'row-just-added' 
           <NInput v-model:value="form.note" :placeholder="t('common.note')" style="width: 100%" />
         </NFormItem>
         <NSpace class="entry-form-buttons">
-          <NButton type="primary" @click="submit">{{ t('common.save') }}</NButton>
-          <NButton secondary @click="copyLast">{{ t('common.copyLast') }}</NButton>
+          <NButton v-if="editingId" @click="cancelEdit">{{ t('common.cancel') }}</NButton>
+          <NButton v-else secondary @click="copyLast">{{ t('common.copyLast') }}</NButton>
+          <NButton type="primary" @click="submit">{{ editingId ? t('common.update') : t('common.save') }}</NButton>
         </NSpace>
       </NForm>
     </NCard>

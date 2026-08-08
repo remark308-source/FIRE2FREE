@@ -17,6 +17,7 @@ const message = useMessage()
 const tab = ref('daily')
 const form = ref({ date: Date.now(), category: 'food', amount: null, currency: 'CNY', note: '' })
 const justAddedId = ref(null)
+const editingId = ref(null) // 非空表示当前在编辑该行
 
 // 月版模式:隐藏逐笔表,改为填「本月支出总额」一笔 isMonthlyTotal 记录(含月供)
 const entryMode = computed(() => app.profile.entryMode)
@@ -85,17 +86,43 @@ function copyLast() {
 
 function submit() {
   if (!form.value.amount || Number(form.value.amount) <= 0) return message.warning(t('expense.amountHint'))
-  const row = app.add('expenses', {
+  const payload = {
     type: 'daily',
     date: dayjs(form.value.date).format('YYYY-MM-DD'),
     category: form.value.category,
     amount: Number(form.value.amount),
     currency: form.value.currency,
     note: form.value.note
-  })
+  }
+  if (editingId.value) {
+    app.update('expenses', editingId.value, payload)
+    fireSave(t('common.updated'))
+    justAddedId.value = editingId.value
+    setTimeout(() => (justAddedId.value = null), 1600)
+    cancelEdit()
+    return
+  }
+  const row = app.add('expenses', payload)
   fireSave(t('expense.saved'))
   justAddedId.value = row.id
   setTimeout(() => (justAddedId.value = null), 1600)
+  form.value = { date: Date.now(), category: 'food', amount: null, currency: app.baseCurrency, note: '' }
+}
+
+// 编辑某行:把表单填上该行数据,editingId 设为该行 id;点保存调 update,点取消清空
+function editRow(r) {
+  editingId.value = r.id
+  form.value = {
+    date: dayjs(r.date).valueOf(),
+    category: r.category,
+    amount: Number(r.amount),
+    currency: r.currency,
+    note: r.note || ''
+  }
+  if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+function cancelEdit() {
+  editingId.value = null
   form.value = { date: Date.now(), category: 'food', amount: null, currency: app.baseCurrency, note: '' }
 }
 
@@ -114,12 +141,28 @@ const columns = computed(() => [
   {
     title: '',
     key: 'op',
+    width: 140,
     render: (r) =>
-      h(
-        NPopconfirm,
-        { onPositiveClick: () => app.remove('expenses', r.id) },
-        { trigger: () => h(NButton, { size: 'small', type: 'error', quaternary: true }, () => t('common.delete')), default: () => t('common.deleteConfirm') }
-      )
+      h(NSpace, { size: 8, justify: 'end' }, () => [
+        h(
+          NButton,
+          {
+            size: 'small',
+            type: 'primary',
+            quaternary: true,
+            onClick: () => editRow(r)
+          },
+          () => t('common.edit')
+        ),
+        h(
+          NPopconfirm,
+          { onPositiveClick: () => { if (editingId.value === r.id) cancelEdit(); app.remove('expenses', r.id) } },
+          {
+            trigger: () => h(NButton, { size: 'small', type: 'error', quaternary: true }, () => t('common.delete')),
+            default: () => t('common.deleteConfirm')
+          }
+        )
+      ])
   }
 ])
 const rowProps = (r) => ({ class: r.id === justAddedId.value ? 'row-just-added' : '' })
@@ -131,7 +174,7 @@ const rowProps = (r) => ({ class: r.id === justAddedId.value ? 'row-just-added' 
     <NTabs v-model:value="tab" type="segment">
       <NTabPane name="daily" :tab="t('expense.daily')" />
     </NTabs>
-    <NCard :title="t('expense.title')" style="margin-top: 12px">
+    <NCard :title="editingId ? t('common.edit') + ' · ' + t('expense.title') : t('expense.title')" style="margin-top: 12px">
       <NForm :model="form" :show-feedback="false" class="entry-form">
         <NFormItem :label="t('common.date')">
           <NDatePicker v-model:value="form.date" type="date" style="width: 100%" />
@@ -149,8 +192,9 @@ const rowProps = (r) => ({ class: r.id === justAddedId.value ? 'row-just-added' 
           <NInput v-model:value="form.note" :placeholder="t('common.note')" style="width: 100%" />
         </NFormItem>
         <NSpace class="entry-form-buttons">
-          <NButton type="primary" @click="submit">{{ t('common.save') }}</NButton>
-          <NButton secondary @click="copyLast">{{ t('common.copyLast') }}</NButton>
+          <NButton v-if="editingId" @click="cancelEdit">{{ t('common.cancel') }}</NButton>
+          <NButton v-else secondary @click="copyLast">{{ t('common.copyLast') }}</NButton>
+          <NButton type="primary" @click="submit">{{ editingId ? t('common.update') : t('common.save') }}</NButton>
         </NSpace>
       </NForm>
     </NCard>

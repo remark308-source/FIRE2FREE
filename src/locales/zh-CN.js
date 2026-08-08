@@ -34,6 +34,8 @@ export default {
   },
   common: {
     save: '保存',
+    update: '更新',
+    updated: '已更新',
     cancel: '取消',
     add: '新增',
     copyLast: '复制上次',

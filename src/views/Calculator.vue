@@ -6,7 +6,7 @@
  */
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NCard, NSpace, NText, NForm, NFormItem, NSlider, NTag, NRadioGroup, NRadioButton } from 'naive-ui'
+import { NCard, NSpace, NText, NForm, NFormItem, NSlider, NInputNumber, NTag, NRadioGroup, NRadioButton } from 'naive-ui'
 import { useAggregate } from '@/composables/aggregate'
 import { useAppStore } from '@/stores/app'
 import { yearsToFire } from '@/finance'
@@ -41,7 +41,8 @@ const scenarios = computed(() => {
 // 财富自由推演:M1 支出覆盖(资产×收益率≥年支出) + M2 收入替代(被动≥主动)
 // 逐年迭代:资产 = 资产 + 年净流入 + 资产×收益率;主动收入按工资增速复利。
 // 失业情景:开始时资产扣除「失业月数×月支出」一次性冲击。
-const salaryGrowth = ref(0) // 工资年增率,默认 0%
+// 工资年增率(以百分比计,如 5 表示 5%),wealthPlan 内部 /100 转小数
+const salaryGrowth = ref(0)
 const unemployment = ref(0) // 失业月数:0/6/12/18
 const wealthPlan = computed(() => {
   const r = app.profile.returnRates[app.profile.defaultReturnScenario] || 0.08
@@ -62,7 +63,7 @@ const wealthPlan = computed(() => {
     if (m1 === null && assets >= target) m1 = y
     if (m2 === null && active > 0 && assets * r >= active) m2 = y
     assets = assets + netMonthly * 12 + assets * r
-    active = active * (1 + salaryGrowth.value)
+    active = active * (1 + salaryGrowth.value / 100)
   }
   return { m1, m2, activeAnnual, passive0 }
 })
@@ -131,8 +132,9 @@ const wealthPlan = computed(() => {
     <div class="wp-controls">
       <div class="wp-ctrl">
         <span class="wp-ctrl-label">{{ t('calculator.salaryGrowth') }}</span>
-        <NSlider v-model:value="salaryGrowth" :min="0" :max="0.15" :step="0.01" style="flex: 1" />
-        <span class="wp-ctrl-val">{{ (salaryGrowth * 100).toFixed(0) }}%</span>
+        <NInputNumber v-model:value="salaryGrowth" :min="-50" :max="50" :step="0.5" :precision="1" style="flex: 1">
+          <template #suffix>%</template>
+        </NInputNumber>
       </div>
       <div class="wp-ctrl">
         <span class="wp-ctrl-label">{{ t('calculator.unemployment') }}</span>

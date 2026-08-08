@@ -252,8 +252,6 @@ function gotoRecord(type) {
           <div class="ff-bar">
             <div class="ff-bar-fill" :style="{ width: ffBar.fillW + '%' }"></div>
             <div v-if="ffBar.overW > 0" class="ff-bar-over" :style="{ left: '100%', width: ffBar.overW + '%' }"></div>
-            <span class="ff-tick"></span>
-            <span class="ff-tick-label">100</span>
           </div>
         </div>
       </div>
@@ -303,13 +301,13 @@ function gotoRecord(type) {
       </div>
     </section>
 
-    <!-- STAT CARDS (含动态平衡) ==========================
-         桌面(≥640):5 张等宽横排。
-         移动端(<640):用 CSS 把 NGrid 强制成 grid-template-columns: 1fr 1fr,
-         第一张跨 1/-1 全宽 = 1+2+2 三行布局。
-         (NGrid 的 cols responsive object 在 2.38 不稳定,改用 CSS !important 覆盖更稳)
+    <!-- STAT CARDS:
+         桌面(≥769px):4 张横排(净资产/年被动/月入/月出,无财务自由度)
+         手机(≤768px):5 张 1+2+2(净资产全宽 + 财务自由度/年被动/月入/月出)
+         财务自由度只在手机 2×2 出现;桌面放 Hero 里即可避免重复。
     -->
-    <NGrid class="stat-row" :cols="5" :x-gap="12" :y-gap="12" responsive="screen" item-responsive>
+    <!-- 桌面 4 卡 -->
+    <NGrid class="stat-row stat-row--desk" :cols="4" :x-gap="12" :y-gap="12">
       <NGi :span="1">
         <NCard size="small" class="stat-card stat-blue" :bordered="false">
           <div class="stat-icon"><IconMoney /></div>
@@ -318,20 +316,63 @@ function gotoRecord(type) {
           <div class="stat-foot">{{ $t('dashboard.investGrowth') }}: {{ investPLTotal >= 0 ? '+' : '' }}{{ fmtL(investPLTotal, base) }}</div>
         </NCard>
       </NGi>
-      <!-- 财务自由度(2×2 左上):橘/红分段进度条 + 100% 刻度 -->
       <NGi :span="1">
-        <NCard size="small" class="stat-card stat-gold" :bordered="false">
+        <NCard size="small" class="stat-card stat-violet" :bordered="false">
+          <div class="stat-icon"><IconMoney /></div>
+          <NStatistic
+            :label="$t('dashboard.annualPassive')"
+            :value="`${fs.annualReturn >= 0 ? '+' : ''}${fmtL(fs.annualReturn, base)}`"
+          />
+          <div class="stat-foot" :style="{ color: fs.annualReturn >= 0 ? '#E9533B' : '#18a058' }">
+            {{ $t('dashboard.returnRate', { r: fmtPct(fs.returnRate) }) }}
+          </div>
+          <div class="stat-foot">
+            {{ $t('dashboard.coverage') }} {{ fs.coverage === Infinity ? '∞' : fmtPct(fs.coverage) }}
+          </div>
+        </NCard>
+      </NGi>
+      <NGi :span="1">
+        <NCard size="small" class="stat-card stat-green" :bordered="false">
+          <div class="stat-icon">
+            <IconTrendUp v-if="incomeTrendIsActive" />
+            <IconTrendDown v-else />
+          </div>
+          <NStatistic :label="`${$t('common.thisMonth')} ${$t('dashboard.totalIncome')}`" :value="fmtL(displayMonth.totalIncome, base)" />
+          <div class="stat-foot">{{ $t('dashboard.activeIncome') }}: {{ fmtL(displayMonth.activeIncome, base) }} · {{ $t('dashboard.passiveIncome') }}: {{ fmtL(displayMonth.passiveIncome, base) }}</div>
+          <div class="stat-foot">{{ $t('dashboard.mom') }}: {{ incomeMoM >= 0 ? '+' : '' }}{{ fmtL(incomeMoM, base) }}</div>
+        </NCard>
+      </NGi>
+      <NGi :span="1">
+        <NCard size="small" class="stat-card stat-rose" :bordered="false">
+          <div class="stat-icon"><IconExpense /></div>
+          <NStatistic :label="`${$t('common.thisMonth')} ${$t('dashboard.totalExpense')}`" :value="fmtL(displayMonth.totalExpense, base)" />
+          <div class="stat-foot">{{ $t('dashboard.expenseRatio') }}: {{ displayMonth.totalIncome > 0 ? fmtPct(displayMonth.totalExpense / displayMonth.totalIncome) : '—' }}</div>
+          <div class="stat-foot">{{ $t('dashboard.mom') }}: {{ expenseMoM >= 0 ? '+' : '' }}{{ fmtL(expenseMoM, base) }}</div>
+        </NCard>
+      </NGi>
+    </NGrid>
+
+    <!-- 手机 5 卡(含财务自由度):CSS 在 ≤768px 强制 2 列 + :first-child 跨整行 -->
+    <NGrid class="stat-row stat-row--mob" :cols="5" :x-gap="12" :y-gap="12" responsive="screen" item-responsive>
+      <NGi :span="1">
+        <NCard size="small" class="stat-card stat-blue" :bordered="false">
+          <div class="stat-icon"><IconMoney /></div>
+          <NStatistic :label="`${$t('dashboard.netAssets')} (${base})`" :value="fmtL(fs.netAssets, base)" />
+          <div class="stat-foot">{{ $t('dashboard.investAccountValue') }}: {{ fmtL(totalInvestValue, base) }}</div>
+          <div class="stat-foot">{{ $t('dashboard.investGrowth') }}: {{ investPLTotal >= 0 ? '+' : '' }}{{ fmtL(investPLTotal, base) }}</div>
+        </NCard>
+      </NGi>
+      <!-- 财务自由度(手机 2×2 左上):青蓝渐变(避免与橘色进度条同色看不清) -->
+      <NGi :span="1">
+        <NCard size="small" class="stat-card stat-cyan" :bordered="false">
           <div class="stat-icon">⚖️</div>
           <NStatistic :label="$t('dashboard.finFreedom')" :value="ffBar.display" />
           <div class="ff-bar ff-bar--card">
             <div class="ff-bar-fill" :style="{ width: ffBar.fillW + '%' }"></div>
             <div v-if="ffBar.overW > 0" class="ff-bar-over" :style="{ left: '100%', width: ffBar.overW + '%' }"></div>
-            <span class="ff-tick"></span>
-            <span class="ff-tick-label">100</span>
           </div>
         </NCard>
       </NGi>
-      <!-- 年被动收益(2×2 右上) -->
       <NGi :span="1">
         <NCard size="small" class="stat-card stat-violet" :bordered="false">
           <div class="stat-icon">⚖️</div>
@@ -347,7 +388,6 @@ function gotoRecord(type) {
           </div>
         </NCard>
       </NGi>
-      <!-- 本月总收入(2×2 左下) -->
       <NGi :span="1">
         <NCard size="small" class="stat-card stat-green" :bordered="false">
           <div class="stat-icon">
@@ -359,7 +399,6 @@ function gotoRecord(type) {
           <div class="stat-foot">{{ $t('dashboard.mom') }}: {{ incomeMoM >= 0 ? '+' : '' }}{{ fmtL(incomeMoM, base) }}</div>
         </NCard>
       </NGi>
-      <!-- 本月总支出(2×2 右下) -->
       <NGi :span="1">
         <NCard size="small" class="stat-card stat-rose" :bordered="false">
           <div class="stat-icon"><IconExpense /></div>
@@ -579,15 +618,15 @@ function gotoRecord(type) {
 }
 .hero--desktop .hero-ring-col { z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; }
 .hero--desktop .hero-ring-svg { display: block; }
-.hero--desktop .hero-stats { z-index: 1; display: flex; flex-direction: column; gap: 14px; align-items: flex-end; flex-shrink: 0; }
-.hero--desktop .hero-stats-top { display: flex; align-items: center; gap: 18px; }
-.hero--desktop .hero-stat-item { text-align: right; }
+.hero--desktop .hero-stats { z-index: 1; display: flex; flex-direction: column; gap: 14px; align-items: stretch; flex-shrink: 0; width: 260px; }
+.hero--desktop .hero-stats-top { display: flex; align-items: center; justify-content: space-between; gap: 18px; width: 100%; }
+.hero--desktop .hero-stat-item { text-align: center; }
 .hero--desktop .hero-stat-label { font-size: 11px; opacity: 0.7; }
 .hero--desktop .hero-stat-val { font-size: 18px; font-weight: 700; margin-top: 2px; }
 .hero--desktop .hero-stat-val--sr { color: #FF8A3D; }
 .hero--desktop .hero-stat-div { width: 1px; height: 34px; background: rgba(125,125,140,0.3); }
 .hero--desktop .hero-ff-divider { width: 100%; height: 1px; background: rgba(125,125,140,0.25); }
-.hero--desktop .hero-ff { display: flex; flex-direction: column; gap: 6px; min-width: 220px; }
+.hero--desktop .hero-ff { display: flex; flex-direction: column; gap: 6px; width: 100%; }
 .hero--desktop .hero-ff-head { display: flex; align-items: baseline; justify-content: space-between; }
 .hero--desktop .hero-ff-label { font-size: 12px; opacity: 0.75; }
 .hero--desktop .hero-ff-val { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -610,9 +649,7 @@ function gotoRecord(type) {
 /* 平板:桌面 hero 改为纵向居中 */
 @media (max-width: 1024px) and (min-width: 769px) {
   .hero--desktop { flex-direction: column; gap: 18px; }
-  .hero--desktop .hero-stats { align-items: center; }
-  .hero--desktop .hero-stat-item { text-align: center; }
-  .hero--desktop .hero-ff { min-width: 0; width: 100%; max-width: 320px; }
+  .hero--desktop .hero-stats { width: 100%; max-width: 320px; }
 }
 
 /* ---- 手机 Hero(今天 round-8 紧凑三列) ---- */
@@ -713,6 +750,9 @@ function gotoRecord(type) {
 }
 
 .stat-row { margin-top: 4px; }
+/* 默认(桌面):只显桌面 4 卡,手机 5 卡隐藏(NGrid 自带 display:grid,
+   优先级高于普通选择器,需 !important 覆盖) */
+.stat-row--mob { display: none !important; }
 .stat-card {
   position: relative; color: #fff; overflow: hidden;
   border-radius: 14px; padding: 4px; height: 100%;
@@ -732,6 +772,7 @@ function gotoRecord(type) {
 .stat-green { background: var(--fire-grad-green); }
 .stat-rose { background: var(--fire-grad-rose); }
 .stat-violet { background: var(--fire-grad-violet); }
+.stat-cyan { background: linear-gradient(135deg, #06b6d4 0%, #0e7490 100%); }
 
 .section {
   display: flex; flex-direction: column; gap: 10px; padding: 16px;
@@ -778,38 +819,40 @@ function gotoRecord(type) {
   /* hero 排版在前面 @media(max-width:768px) 已设置(3 列→手机 2 行 brand|ring + mid 跨行),
      这里不重复覆盖,避免冲突。 */
 
-  /* stat-row 1+2+2 布局 */
-  .stat-row {
+  /* 桌面 4 卡隐藏,手机 5 卡显示(1+2+2 布局) */
+  .stat-row--desk { display: none !important; }
+  .stat-row--mob {
+    display: grid !important;
     grid-template-columns: 1fr 1fr !important;
   }
-  .stat-row > :first-child {
+  .stat-row--mob > :first-child {
     grid-column: 1 / -1 !important;
   }
 
   /* 主卡(首张 = 净资产):xs 满宽,接近桌面样式 */
-  .stat-row > :first-child .stat-card :deep(.n-card__content) { padding: 14px !important; }
-  .stat-row > :first-child .stat-card :deep(.n-statistic-value__content) {
+  .stat-row--mob > :first-child .stat-card :deep(.n-card__content) { padding: 14px !important; }
+  .stat-row--mob > :first-child .stat-card :deep(.n-statistic-value__content) {
     font-size: 22px !important;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .stat-row > :first-child .stat-card :deep(.n-statistic .n-statistic__label) {
+  .stat-row--mob > :first-child .stat-card :deep(.n-statistic .n-statistic__label) {
     font-size: 11px !important;
   }
-  .stat-row > :first-child .stat-card .stat-icon { width: 28px; height: 28px; top: 10px; right: 10px; }
-  .stat-row > :first-child .stat-card .stat-foot { font-size: 10.5px; margin-top: 4px; }
+  .stat-row--mob > :first-child .stat-card .stat-icon { width: 28px; height: 28px; top: 10px; right: 10px; }
+  .stat-row--mob > :first-child .stat-card .stat-foot { font-size: 10.5px; margin-top: 4px; }
 
   /* 副卡(其余 4 张):xs 半宽,紧凑样式,数字/label/foot 全部 nowrap + ellipsis */
-  .stat-row > :not(:first-child) .stat-card :deep(.n-card__content) { padding: 12px 10px 10px !important; }
-  .stat-row > :not(:first-child) .stat-card :deep(.n-statistic-value__content) {
+  .stat-row--mob > :not(:first-child) .stat-card :deep(.n-card__content) { padding: 12px 10px 10px !important; }
+  .stat-row--mob > :not(:first-child) .stat-card :deep(.n-statistic-value__content) {
     font-size: 15px !important;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.2;
   }
-  .stat-row > :not(:first-child) .stat-card :deep(.n-statistic .n-statistic__label) {
+  .stat-row--mob > :not(:first-child) .stat-card :deep(.n-statistic .n-statistic__label) {
     font-size: 10.5px !important;
     white-space: nowrap;
     overflow: hidden;
@@ -817,8 +860,8 @@ function gotoRecord(type) {
     margin-bottom: 2px !important;
     line-height: 1.2;
   }
-  .stat-row > :not(:first-child) .stat-card .stat-icon { width: 22px; height: 22px; top: 6px; right: 6px; }
-  .stat-row > :not(:first-child) .stat-card .stat-foot {
+  .stat-row--mob > :not(:first-child) .stat-card .stat-icon { width: 22px; height: 22px; top: 6px; right: 6px; }
+  .stat-row--mob > :not(:first-child) .stat-card .stat-foot {
     display: block !important;
     font-size: 10px !important;
     white-space: nowrap;
@@ -844,9 +887,9 @@ function gotoRecord(type) {
 
 /* iPhone SE 等 ≤480px 极窄屏:副卡数字再缩一档 */
 @media (max-width: 480px) {
-  .stat-row > :not(:first-child) .stat-card :deep(.n-card__content) { padding: 10px 8px 8px !important; }
-  .stat-row > :not(:first-child) .stat-card :deep(.n-statistic-value__content) { font-size: 14px !important; }
-  .stat-row > :not(:first-child) .stat-card .stat-foot { font-size: 9.5px !important; }
+  .stat-row--mob > :not(:first-child) .stat-card :deep(.n-card__content) { padding: 10px 8px 8px !important; }
+  .stat-row--mob > :not(:first-child) .stat-card :deep(.n-statistic-value__content) { font-size: 14px !important; }
+  .stat-row--mob > :not(:first-child) .stat-card .stat-foot { font-size: 9.5px !important; }
 }
 
 /* 快捷入口:桌面 4 按钮(074de8e)/ 手机 2 按钮(今天 round-8) 双布局 */

@@ -34,6 +34,8 @@ export default {
   },
   common: {
     save: 'Save',
+    update: 'Update',
+    updated: 'Updated',
     cancel: 'Cancel',
     add: 'Add',
     copyLast: 'Copy Last',
