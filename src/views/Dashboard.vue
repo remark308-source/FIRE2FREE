@@ -338,7 +338,7 @@ function gotoRecord(type) {
             <IconTrendDown v-else />
           </div>
           <NStatistic :label="`${$t('common.thisMonth')} ${$t('dashboard.totalIncome')}`" :value="fmtL(displayMonth.totalIncome, base)" />
-          <div class="stat-foot">{{ $t('dashboard.activeIncome') }}: {{ fmtL(displayMonth.activeIncome, base) }} · {{ $t('dashboard.passiveIncome') }}: {{ fmtL(displayMonth.passiveIncome, base) }}</div>
+          <div class="stat-foot">{{ $t('dashboard.activeIncome') }}: {{ fmtL(displayMonth.activeIncome, base) }} · <span class="mob-ff-break">{{ $t('dashboard.passiveIncome') }}: {{ fmtL(displayMonth.passiveIncome, base) }}</span></div>
           <div class="stat-foot">{{ $t('dashboard.mom') }}: {{ incomeMoM >= 0 ? '+' : '' }}{{ fmtL(incomeMoM, base) }}</div>
         </NCard>
       </NGi>
@@ -395,7 +395,7 @@ function gotoRecord(type) {
             <IconTrendDown v-else />
           </div>
           <NStatistic :label="`${$t('common.thisMonth')} ${$t('dashboard.totalIncome')}`" :value="fmtL(displayMonth.totalIncome, base)" />
-          <div class="stat-foot">{{ $t('dashboard.activeIncome') }}: {{ fmtL(displayMonth.activeIncome, base) }} · {{ $t('dashboard.passiveIncome') }}: {{ fmtL(displayMonth.passiveIncome, base) }}</div>
+          <div class="stat-foot">{{ $t('dashboard.activeIncome') }}: {{ fmtL(displayMonth.activeIncome, base) }} · <span class="mob-ff-break">{{ $t('dashboard.passiveIncome') }}: {{ fmtL(displayMonth.passiveIncome, base) }}</span></div>
           <div class="stat-foot">{{ $t('dashboard.mom') }}: {{ incomeMoM >= 0 ? '+' : '' }}{{ fmtL(incomeMoM, base) }}</div>
         </NCard>
       </NGi>
@@ -872,6 +872,8 @@ function gotoRecord(type) {
     margin-top: 4px !important;
     line-height: 1.4;
   }
+  /* 手机版:本月总收入卡内「被动收入」强制独立成一行 */
+  .stat-row--mob .mob-ff-break { display: block; margin-top: 2px; }
 
   .section { padding: 12px !important; }
   .section-title { font-size: 14px; }
