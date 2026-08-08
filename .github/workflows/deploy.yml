@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages + CloudBase
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -42,13 +42,6 @@ jobs:
         with:
           path: ./dist
 
-      - name: Upload dist artifact (for CloudBase step)
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: ./dist
-          if-no-files-found: error
-
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -59,24 +52,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-      - name: Checkout sources (for cloudbaserc.json)
-        if: ${{ secrets.CLOUDBASE_ENV_ID != '' }}
-        uses: actions/checkout@v4
-
-      - name: Download dist artifact
-        if: ${{ secrets.CLOUDBASE_ENV_ID != '' }}
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: ./dist
-
-      - name: Deploy to CloudBase (skip until secrets are set)
-        if: ${{ secrets.CLOUDBASE_ENV_ID != '' }}
-        uses: TencentCloudBase/cloudbase-action@v2
-        with:
-          secretId: ${{ secrets.CLOUDBASE_SECRET_ID }}
-          secretKey: ${{ secrets.CLOUDBASE_SECRET_KEY }}
-          envId: ${{ secrets.CLOUDBASE_ENV_ID }}
-        env:
-          ENV_ID: ${{ secrets.CLOUDBASE_ENV_ID }}
