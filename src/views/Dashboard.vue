@@ -824,6 +824,8 @@ function gotoRecord(type) {
   .stat-row--mob {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
+    /* 行1=净资产(满宽,独立 auto 高度); 行2/行3=4 张副卡等高分摊(各 1fr) */
+    grid-template-rows: auto 1fr 1fr;
   }
   .stat-row--mob > :first-child {
     grid-column: 1 / -1 !important;
@@ -834,6 +836,8 @@ function gotoRecord(type) {
     grid-column: span 1 !important;
     min-width: 0;
   }
+  /* 副卡撑满网格格 = 严格等高(与最髙副卡一致),内容顶部对齐 */
+  .stat-row--mob > :not(:first-child) .stat-card { height: 100%; }
 
   /* 主卡(首张 = 净资产):xs 满宽,接近桌面样式 */
   .stat-row--mob > :first-child .stat-card :deep(.n-card__content) { padding: 14px !important; }
@@ -850,7 +854,7 @@ function gotoRecord(type) {
   .stat-row--mob > :first-child .stat-card .stat-foot { font-size: 10.5px; margin-top: 4px; }
 
   /* 副卡(其余 4 张):xs 半宽,紧凑样式;放开 nowrap 让脚注(主动/被动收入)自然换行 */
-  .stat-row--mob > :not(:first-child) .stat-card :deep(.n-card__content) { padding: 12px 10px 10px !important; }
+  .stat-row--mob > :not(:first-child) .stat-card :deep(.n-card__content) { padding: 12px 10px 8px !important; }
   .stat-row--mob > :not(:first-child) .stat-card :deep(.n-statistic-value__content) {
     font-size: 15px !important;
     white-space: normal;
@@ -891,7 +895,7 @@ function gotoRecord(type) {
 
 /* iPhone SE 等 ≤480px 极窄屏:副卡数字再缩一档 */
 @media (max-width: 480px) {
-  .stat-row--mob > :not(:first-child) .stat-card :deep(.n-card__content) { padding: 10px 8px 8px !important; }
+  .stat-row--mob > :not(:first-child) .stat-card :deep(.n-card__content) { padding: 10px 8px 6px !important; }
   .stat-row--mob > :not(:first-child) .stat-card :deep(.n-statistic-value__content) { font-size: 14px !important; }
   .stat-row--mob > :not(:first-child) .stat-card .stat-foot { font-size: 9.5px !important; }
 }
