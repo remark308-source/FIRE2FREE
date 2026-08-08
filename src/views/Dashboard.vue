@@ -395,7 +395,7 @@ function gotoRecord(type) {
             <IconTrendDown v-else />
           </div>
           <NStatistic :label="`${$t('common.thisMonth')} ${$t('dashboard.totalIncome')}`" :value="fmtL(displayMonth.totalIncome, base)" />
-          <div class="stat-foot stat-foot--income-detail">{{ $t('dashboard.activeIncome') }}: {{ fmtL(displayMonth.activeIncome, base) }} · <span class="mob-ff-break">{{ $t('dashboard.passiveIncome') }}: {{ fmtL(displayMonth.passiveIncome, base) }}</span></div>
+          <div class="stat-foot stat-foot--income-detail">{{ $t('dashboard.activeShort') + ' ' + fmtL(displayMonth.activeIncome, base) }} · {{ $t('dashboard.passiveShort') + ' ' + fmtL(displayMonth.passiveIncome, base) }}</div>
           <div class="stat-foot">{{ $t('dashboard.mom') }}: {{ incomeMoM >= 0 ? '+' : '' }}{{ fmtL(incomeMoM, base) }}</div>
         </NCard>
       </NGi>
@@ -876,12 +876,10 @@ function gotoRecord(type) {
     margin-top: 4px !important;
     line-height: 1.4;
   }
-  /* 手机版:本月总收入卡内「被动收入」强制独立成一行 */
-  .stat-row--mob .mob-ff-break { display: block; margin-top: 2px; }
-  /* 手机版 fallback:隐藏本月总收入卡内的「主动/被动收入」两行,
-     使该卡从 150px 回落到 ~135px,4 张副卡等高值=矮版基线,不再把另 3 格拉高。
-     选择器特异性须 >= 基础 .stat-foot 规则(0,5,0),否则 !important 被反超 */
-  .stat-row--mob > :not(:first-child) .stat-card .stat-foot--income-detail { display: none !important; }
+  /* 手机版:本月总收入卡「主动/被动收入」合并为单行(方案 A),保持 135 等高不撑高、不碰另三格 */
+  .stat-row--mob > :not(:first-child) .stat-card .stat-foot--income-detail {
+    white-space: nowrap !important;
+  }
 
   .section { padding: 12px !important; }
   .section-title { font-size: 14px; }

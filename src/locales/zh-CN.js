@@ -126,6 +126,8 @@ export default {
     loanExpense: '信贷月供',
     activeIncome: '主动收入',
     passiveIncome: '被动收入',
+    activeShort: '主动',
+    passiveShort: '被动',
     totalIncome: '总收入',
     totalExpense: '总支出',
     netCashFlow: '净现金流',

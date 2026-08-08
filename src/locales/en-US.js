@@ -124,6 +124,8 @@ export default {
     loanExpense: 'Loan Payments',
     activeIncome: 'Active Income',
     passiveIncome: 'Passive Income',
+    activeShort: 'Active',
+    passiveShort: 'Passive',
     totalIncome: 'Total Income',
     totalExpense: 'Total Expense',
     netCashFlow: 'Net Cash Flow',
