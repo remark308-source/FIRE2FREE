@@ -129,7 +129,7 @@ const wealthPlan = computed(() => {
     <div class="wp-controls">
       <div class="wp-ctrl">
         <span class="wp-ctrl-label">{{ t('calculator.salaryGrowth') }}</span>
-        <NInputNumber v-model:value="salaryGrowth" :min="-50" :max="50" :step="0.5" :precision="1" style="flex: 1">
+        <NInputNumber v-model:value="salaryGrowth" :min="-50" :max="50" :step="0.5" :precision="1" style="width: 120px; flex: 0 0 120px">
           <template #suffix>%</template>
         </NInputNumber>
       </div>
