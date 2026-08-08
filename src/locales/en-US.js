@@ -138,6 +138,8 @@ export default {
     aboveTarget: 'FIRE Threshold Crossed 🎉',
     onTrack: 'On Track',
     needMore: 'Keep Going',
+    finFreedom: 'Financial Freedom',
+    mom: 'MoM',
 
     breakdown: 'Breakdown',
     quickActions: 'Quick Actions',
@@ -244,7 +246,16 @@ export default {
     progress: 'Progress',
     eta: 'ETA (years)',
     scenario: 'Scenario',
-    whatIf: 'What-if: raise savings rate'
+    whatIf: 'What-if: raise savings rate',
+    wealthPlan: 'Wealth Freedom Plan',
+    m1: 'M1 Expense Coverage',
+    m2: 'M2 Income Replacement',
+    m1desc: 'Asset yield ≥ annual expense',
+    m2desc: 'Passive income ≥ active income',
+    salaryGrowth: 'Salary annual growth',
+    unemployment: 'Unemployment scenario',
+    unempOff: 'Off',
+    unempMonths: '{n} months'
   },
   reminders: {
     title: 'Reminders',

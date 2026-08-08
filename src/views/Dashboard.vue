@@ -184,6 +184,30 @@ const monthNet = computed(() => displayMonth.value.totalIncome - displayMonth.va
 
 const incomeTrendIsActive = computed(() => displayMonth.value.activeIncome >= displayMonth.value.passiveIncome)
 
+// 财务自由度 = 近 12 月滚动 被动收入 / 主动收入 (口径:平滑单月奖金/分红/失业空窗)
+const finFreedom = computed(() => {
+  const ms = monthly.value
+  if (!ms.length) return { pct: null, hasData: false }
+  const last12 = ms.slice(-12)
+  const passive = last12.reduce((s, m) => s + (m.passiveIncome || 0), 0)
+  const active = last12.reduce((s, m) => s + (m.activeIncome || 0), 0)
+  if (active <= 0) return { pct: null, hasData: true } // 失业/裸辞:主动=0 → 不硬算
+  return { pct: passive / active, hasData: true }
+})
+// 财务自由度进度条分段:0–100% 橘色 #FF8A3D,>100% 溢出段红色 #E9533B,100% 刻度线
+const ffBar = computed(() => {
+  const pct = finFreedom.value.pct
+  if (pct == null) return { display: '—', fillW: 0, overW: 0, color: '#FF8A3D' }
+  const fillW = Math.min(pct, 1) * 100
+  const overW = pct > 1 ? Math.min((pct - 1) * 100, 35) : 0 // 溢出段(封顶 35% 防裁切)
+  const color = pct >= 1 ? '#E9533B' : '#FF8A3D'
+  return { display: (pct * 100).toFixed(0) + '%', fillW, overW, color }
+})
+// 本月收入/支出 环比(用于 2×2 卡脚注「较上月」)
+const prevMonth = computed(() => monthly.value[monthly.value.length - 2] || null)
+const incomeMoM = computed(() => displayMonth.value.totalIncome - (prevMonth.value ? prevMonth.value.totalIncome : 0))
+const expenseMoM = computed(() => displayMonth.value.totalExpense - (prevMonth.value ? prevMonth.value.totalExpense : 0))
+
 function goTo(name) { router.push({ name }) }
 function gotoRecord(type) {
   router.push({ name: type === 'in' ? 'income' : 'expense' })
@@ -197,39 +221,40 @@ function gotoRecord(type) {
          整体 padding/gap 全面压缩,避免 hero 占满整个首屏。 -->
     <!-- HERO:桌面用 074de8e 昨天的结构;手机用今天的 round-8 紧凑三列。
          两者共存于 DOM,用 class 在断点切换显隐。 -->
-    <!-- 桌面 Hero(074de8e 样子:FIRE2FREE 水印 + greeting + ring + meta) -->
+    <!-- 桌面 Hero(截图:左 进度环 / 中 FIRE2FREE 水印 / 右 指标列) -->
     <section class="hero hero--desktop">
-      <div class="hero-greeting">
-        <NText depth="2" style="font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; opacity: 0.7">
-          {{ $t('app.title') }}
-        </NText>
-        <h1 class="hero-title">
-          {{ langGreeting }}<span v-if="userName">, {{ userName }}</span>
-        </h1>
-        <p class="hero-sub">{{ $t('dashboard.greeting') }}</p>
-        <p v-if="statement" class="hero-statement">“{{ statement }}”</p>
-        <NSpace size="small" class="hero-tags" :wrap="true">
-          <NTag v-for="(tag, i) in heroTags" :key="i" :type="tag.type" round size="small">{{ tag.text }}</NTag>
-        </NSpace>
-      </div>
-
-      <div class="hero-ring">
+      <div class="hero-ring-col">
         <FireProgressRing
           :progress="fs.progress"
-          :size="220"
+          :size="200"
           class="hero-ring-svg"
         />
       </div>
 
-      <div class="hero-meta">
-        <div class="hero-meta-item">
-          <NText depth="3" class="hero-meta-label">{{ $t('dashboard.etaLabel') }}</NText>
-          <div class="hero-meta-val">{{ etaText }}</div>
+      <div class="hero-stats">
+        <div class="hero-stats-top">
+          <div class="hero-stat-item">
+            <NText depth="3" class="hero-stat-label">{{ $t('dashboard.etaLabel') }}</NText>
+            <div class="hero-stat-val">{{ etaText }}</div>
+          </div>
+          <div class="hero-stat-div"></div>
+          <div class="hero-stat-item">
+            <NText depth="3" class="hero-stat-label">{{ $t('dashboard.savingsRate') }}</NText>
+            <div class="hero-stat-val hero-stat-val--sr">{{ fmtPct(fs.savingsRate || 0) }}</div>
+          </div>
         </div>
-        <div class="hero-meta-divider"></div>
-        <div class="hero-meta-item">
-          <NText depth="3" class="hero-meta-label">{{ $t('dashboard.savingsRate') }}</NText>
-          <div class="hero-meta-val hero-meta-val--sr">{{ fmtPct(fs.savingsRate || 0) }}</div>
+        <div class="hero-ff-divider"></div>
+        <div class="hero-ff">
+          <div class="hero-ff-head">
+            <span class="hero-ff-label">{{ $t('dashboard.finFreedom') }}</span>
+            <span class="hero-ff-val" :style="{ color: ffBar.color }">{{ ffBar.display }}</span>
+          </div>
+          <div class="ff-bar">
+            <div class="ff-bar-fill" :style="{ width: ffBar.fillW + '%' }"></div>
+            <div v-if="ffBar.overW > 0" class="ff-bar-over" :style="{ left: '100%', width: ffBar.overW + '%' }"></div>
+            <span class="ff-tick"></span>
+            <span class="ff-tick-label">100</span>
+          </div>
         </div>
       </div>
     </section>
@@ -293,30 +318,20 @@ function gotoRecord(type) {
           <div class="stat-foot">{{ $t('dashboard.investGrowth') }}: {{ investPLTotal >= 0 ? '+' : '' }}{{ fmtL(investPLTotal, base) }}</div>
         </NCard>
       </NGi>
+      <!-- 财务自由度(2×2 左上):橘/红分段进度条 + 100% 刻度 -->
       <NGi :span="1">
         <NCard size="small" class="stat-card stat-gold" :bordered="false">
-          <div class="stat-icon"><IconRocket /></div>
-          <NStatistic :label="`${$t('dashboard.fireTarget')} (${base})`" :value="fmtL(fs.target, base)" />
-          <div class="stat-foot">{{ $t('dashboard.fireTargetFoot', { mo: fmtL(lastMonth.totalExpense, base), mul: app.profile.fireMultiple }) }}</div>
-        </NCard>
-      </NGi>
-      <NGi :span="1">
-        <NCard size="small" class="stat-card stat-green" :bordered="false">
-          <div class="stat-icon">
-            <IconTrendUp v-if="incomeTrendIsActive" />
-            <IconTrendDown v-else />
+          <div class="stat-icon">⚖️</div>
+          <NStatistic :label="$t('dashboard.finFreedom')" :value="ffBar.display" />
+          <div class="ff-bar ff-bar--card">
+            <div class="ff-bar-fill" :style="{ width: ffBar.fillW + '%' }"></div>
+            <div v-if="ffBar.overW > 0" class="ff-bar-over" :style="{ left: '100%', width: ffBar.overW + '%' }"></div>
+            <span class="ff-tick"></span>
+            <span class="ff-tick-label">100</span>
           </div>
-          <NStatistic :label="`${$t('common.thisMonth')} ${$t('dashboard.totalIncome')}`" :value="fmtL(displayMonth.totalIncome, base)" />
-          <div class="stat-foot">{{ $t('dashboard.activeIncome') }}: {{ fmtL(displayMonth.activeIncome, base) }}</div>
         </NCard>
       </NGi>
-      <NGi :span="1">
-        <NCard size="small" class="stat-card stat-rose" :bordered="false">
-          <div class="stat-icon"><IconExpense /></div>
-          <NStatistic :label="`${$t('common.thisMonth')} ${$t('dashboard.totalExpense')}`" :value="fmtL(displayMonth.totalExpense, base)" />
-          <div class="stat-foot">{{ $t('dashboard.expenseRatio') }}: {{ displayMonth.totalIncome > 0 ? fmtPct(displayMonth.totalExpense / displayMonth.totalIncome) : '—' }}</div>
-        </NCard>
-      </NGi>
+      <!-- 年被动收益(2×2 右上) -->
       <NGi :span="1">
         <NCard size="small" class="stat-card stat-violet" :bordered="false">
           <div class="stat-icon">⚖️</div>
@@ -330,6 +345,27 @@ function gotoRecord(type) {
           <div class="stat-foot">
             {{ $t('dashboard.coverage') }} {{ fs.coverage === Infinity ? '∞' : fmtPct(fs.coverage) }}
           </div>
+        </NCard>
+      </NGi>
+      <!-- 本月总收入(2×2 左下) -->
+      <NGi :span="1">
+        <NCard size="small" class="stat-card stat-green" :bordered="false">
+          <div class="stat-icon">
+            <IconTrendUp v-if="incomeTrendIsActive" />
+            <IconTrendDown v-else />
+          </div>
+          <NStatistic :label="`${$t('common.thisMonth')} ${$t('dashboard.totalIncome')}`" :value="fmtL(displayMonth.totalIncome, base)" />
+          <div class="stat-foot">{{ $t('dashboard.activeIncome') }}: {{ fmtL(displayMonth.activeIncome, base) }} · {{ $t('dashboard.passiveIncome') }}: {{ fmtL(displayMonth.passiveIncome, base) }}</div>
+          <div class="stat-foot">{{ $t('dashboard.mom') }}: {{ incomeMoM >= 0 ? '+' : '' }}{{ fmtL(incomeMoM, base) }}</div>
+        </NCard>
+      </NGi>
+      <!-- 本月总支出(2×2 右下) -->
+      <NGi :span="1">
+        <NCard size="small" class="stat-card stat-rose" :bordered="false">
+          <div class="stat-icon"><IconExpense /></div>
+          <NStatistic :label="`${$t('common.thisMonth')} ${$t('dashboard.totalExpense')}`" :value="fmtL(displayMonth.totalExpense, base)" />
+          <div class="stat-foot">{{ $t('dashboard.expenseRatio') }}: {{ displayMonth.totalIncome > 0 ? fmtPct(displayMonth.totalExpense / displayMonth.totalIncome) : '—' }}</div>
+          <div class="stat-foot">{{ $t('dashboard.mom') }}: {{ expenseMoM >= 0 ? '+' : '' }}{{ fmtL(expenseMoM, base) }}</div>
         </NCard>
       </NGi>
     </NGrid>
@@ -509,14 +545,14 @@ function gotoRecord(type) {
    .hero--desktop 仅 >768px 显示;.hero--mobile 仅 ≤768px 显示。
    储蓄率桌面用品牌橙(非绿,满足"不用绿色"规则)。 */
 
-/* ---- 桌面 Hero(074de8e 样子:FIRE2FREE 水印 + greeting + ring + meta) ---- */
+/* ---- 桌面 Hero(截图:左 进度环 / 中 FIRE2FREE 水印 / 右 指标列) ---- */
 .hero--desktop {
   position: relative;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 24px;
-  padding: 26px 28px;
+  padding: 26px 32px;
   border-radius: 18px;
   background: linear-gradient(135deg, rgba(255,200,87,0.10), rgba(233,83,59,0.05) 60%, rgba(91,141,239,0.08));
   border: 1px solid rgba(125,125,140,0.18);
@@ -526,11 +562,12 @@ function gotoRecord(type) {
 .hero--desktop::before {
   content: 'FIRE2FREE';
   position: absolute;
-  top: -40px;
-  right: -30px;
-  font-size: 200px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 150px;
   font-weight: 900;
-  letter-spacing: 10px;
+  letter-spacing: 8px;
   background: linear-gradient(135deg, rgba(255,138,61,0.12), rgba(123,97,255,0.10));
   -webkit-background-clip: text;
   background-clip: text;
@@ -538,44 +575,44 @@ function gotoRecord(type) {
   pointer-events: none;
   user-select: none;
   z-index: 0;
+  white-space: nowrap;
 }
-.hero--desktop .hero-greeting { z-index: 1; }
-.hero--desktop .hero-title {
-  font-size: 30px;
-  font-weight: 800;
-  margin: 6px 0 4px;
-  background: linear-gradient(90deg, #FF8A3D 0%, #E9533B 60%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.hero--desktop .hero-sub { font-size: 13px; margin: 0; opacity: 0.7; }
-.hero--desktop .hero-statement {
-  font-size: 13px;
-  margin: 10px 0 0;
-  padding: 8px 14px;
-  border-left: 3px solid var(--fire-grad-primary, #FF8A3D);
-  background: rgba(255,200,87,0.10);
-  border-radius: 0 8px 8px 0;
-  font-style: italic;
-  opacity: 0.92;
-  max-width: 560px;
-}
-.hero--desktop .hero-tags { margin-top: 14px; }
-.hero--desktop .hero-ring { z-index: 1; padding-bottom: 22px; }
-.hero--desktop .hero-meta { display: flex; align-items: center; gap: 18px; justify-content: flex-end; z-index: 1; padding-right: 6px; }
-.hero--desktop .hero-meta-item { text-align: right; }
-.hero--desktop .hero-meta-label { font-size: 11px; opacity: 0.7; }
-.hero--desktop .hero-meta-val { font-size: 16px; font-weight: 700; margin-top: 2px; }  /* 与 .quick-title(14px)同档偏大,平衡水印/标题压扁 */
-.hero--desktop .hero-meta-val--sr { color: #FF8A3D; }
-.hero--desktop .hero-meta-divider { width: 1px; height: 36px; background: rgba(125,125,140,0.3); }
+.hero--desktop .hero-ring-col { z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; }
+.hero--desktop .hero-ring-svg { display: block; }
+.hero--desktop .hero-stats { z-index: 1; display: flex; flex-direction: column; gap: 14px; align-items: flex-end; flex-shrink: 0; }
+.hero--desktop .hero-stats-top { display: flex; align-items: center; gap: 18px; }
+.hero--desktop .hero-stat-item { text-align: right; }
+.hero--desktop .hero-stat-label { font-size: 11px; opacity: 0.7; }
+.hero--desktop .hero-stat-val { font-size: 18px; font-weight: 700; margin-top: 2px; }
+.hero--desktop .hero-stat-val--sr { color: #FF8A3D; }
+.hero--desktop .hero-stat-div { width: 1px; height: 34px; background: rgba(125,125,140,0.3); }
+.hero--desktop .hero-ff-divider { width: 100%; height: 1px; background: rgba(125,125,140,0.25); }
+.hero--desktop .hero-ff { display: flex; flex-direction: column; gap: 6px; min-width: 220px; }
+.hero--desktop .hero-ff-head { display: flex; align-items: baseline; justify-content: space-between; }
+.hero--desktop .hero-ff-label { font-size: 12px; opacity: 0.75; }
+.hero--desktop .hero-ff-val { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
-/* 平板:桌面 hero 单列居中 */
+/* 财务自由度进度条(橘 0–100% / 红溢出 + 100% 刻度) */
+.ff-bar {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(125,125,140,0.18);
+  margin-top: 6px;
+  overflow: visible;
+}
+.ff-bar-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 999px; background: #FF8A3D; }
+.ff-bar-over { position: absolute; top: 0; height: 100%; border-radius: 999px; background: #E9533B; }
+.ff-tick { position: absolute; top: -3px; left: 100%; width: 1px; height: 12px; background: rgba(125,125,140,0.55); }
+.ff-tick-label { position: absolute; top: 11px; left: 100%; transform: translateX(-50%); font-size: 9px; opacity: 0.6; font-variant-numeric: tabular-nums; }
+.ff-bar--card { margin-top: 10px; }
+
+/* 平板:桌面 hero 改为纵向居中 */
 @media (max-width: 1024px) and (min-width: 769px) {
-  .hero--desktop { grid-template-columns: 1fr; text-align: center; }
-  .hero--desktop .hero-meta { justify-content: center; }
-  .hero--desktop .hero-meta-divider { display: none; }
-  .hero--desktop .hero-meta-item { text-align: center; }
+  .hero--desktop { flex-direction: column; gap: 18px; }
+  .hero--desktop .hero-stats { align-items: center; }
+  .hero--desktop .hero-stat-item { text-align: center; }
+  .hero--desktop .hero-ff { min-width: 0; width: 100%; max-width: 320px; }
 }
 
 /* ---- 手机 Hero(今天 round-8 紧凑三列) ---- */

@@ -143,6 +143,8 @@ export default {
     aboveTarget: '已突破 FIRE 门槛 🎉',
     onTrack: '稳步推进中',
     needMore: '还差一口气',
+    finFreedom: '财务自由度',
+    mom: '较上月',
 
     // 卡片
     breakdown: '收支拆解',
@@ -268,7 +270,16 @@ export default {
     progress: '达成进度',
     eta: '预计达成年份',
     scenario: '情景',
-    whatIf: '情景模拟:若储蓄率提升'
+    whatIf: '情景模拟:若储蓄率提升',
+    wealthPlan: '财富自由推演',
+    m1: 'M1 支出覆盖',
+    m2: 'M2 收入替代',
+    m1desc: '资产年化收益 ≥ 年支出',
+    m2desc: '被动收益 ≥ 主动收入',
+    salaryGrowth: '工资年增率',
+    unemployment: '失业情景',
+    unempOff: '无',
+    unempMonths: '{n} 个月'
   },
   reminders: {
     title: '提醒中心',
