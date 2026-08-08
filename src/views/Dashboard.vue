@@ -836,8 +836,9 @@ function gotoRecord(type) {
     grid-column: span 1 !important;
     min-width: 0;
   }
-  /* 副卡撑满网格格 = 严格等高(与最髙副卡一致),内容顶部对齐 */
-  .stat-row--mob > :not(:first-child) .stat-card { height: 100%; }
+  /* 副卡撑满网格格 = 严格等高; min-height:135px 锁定等高基线(用户要求「卡还是 135」),
+     内容顶部对齐,末行「较上月」absolute 钉底,无卡底留白 */
+  .stat-row--mob > :not(:first-child) .stat-card { height: 100%; min-height: 135px; }
 
   /* 主卡(首张 = 净资产):xs 满宽,接近桌面样式 */
   .stat-row--mob > :first-child .stat-card :deep(.n-card__content) { padding: 14px !important; }
@@ -878,10 +879,29 @@ function gotoRecord(type) {
   }
   /* 手机版:本月总收入卡内「被动收入」强制独立成一行 */
   .stat-row--mob .mob-ff-break { display: block; margin-top: 2px; }
-  /* 手机版 fallback:隐藏本月总收入卡内的「主动/被动收入」两行,
-     使该卡从 150px 回落到 ~135px,4 张副卡等高值=矮版基线,不再把另 3 格拉高。
-     选择器特异性须 >= 基础 .stat-foot 规则(0,5,0),否则 !important 被反超 */
-  .stat-row--mob > :not(:first-child) .stat-card .stat-foot--income-detail { display: none !important; }
+  /* 手机版:副卡根 position:relative,末行「较上月」absolute 钉到卡底,消除卡底留白(4 张一致)。
+     naive-ui 内容类为 .n-card-content(单横线); 绝对定位不依赖 flex 撑高,避开循环依赖 */
+  .stat-row--mob > :not(:first-child) .stat-card {
+    position: relative !important;
+  }
+  .stat-row--mob > :not(:first-child) .stat-card .stat-foot:last-child {
+    position: absolute !important;
+    left: 10px;
+    right: 10px;
+    bottom: 4px;
+    margin-top: 0 !important;
+  }
+  /* 手机版:主动/被动收入恢复显示(用户要求),但把本月总收入卡内容压缩进 135px,
+     使「较上月」贴底(mom 距卡底尽可能小),4 张副卡仍严格等高 135,不把另 3 格拉高。
+     注意:naive-ui 内容类为 .n-card-content(单横线); stat-green 与 stat-card 同元素,用 .stat-card.stat-green */
+  .stat-row--mob .stat-card.stat-green :deep(.n-card-content) {
+    padding: 4px 8px 2px !important;
+  }
+  .stat-row--mob .stat-card.stat-green .stat-foot {
+    margin-top: 1px !important;
+    line-height: 1.18 !important;
+  }
+  .stat-row--mob .stat-card.stat-green .stat-foot--income-detail { margin-top: 1px !important; }
 
   .section { padding: 12px !important; }
   .section-title { font-size: 14px; }
@@ -902,6 +922,9 @@ function gotoRecord(type) {
   .stat-row--mob > :not(:first-child) .stat-card :deep(.n-card__content) { padding: 10px 8px 6px !important; }
   .stat-row--mob > :not(:first-child) .stat-card :deep(.n-statistic-value__content) { font-size: 14px !important; }
   .stat-row--mob > :not(:first-child) .stat-card .stat-foot { font-size: 9.5px !important; }
+  /* 极窄屏:本月总收入卡继续压缩,确保主动/被动恢复后仍塞进 ~135px、mom 贴底 */
+  .stat-row--mob .stat-card.stat-green :deep(.n-card-content) { padding: 3px 7px 2px !important; }
+  .stat-row--mob .stat-card.stat-green .stat-foot { font-size: 9px !important; line-height: 1.12 !important; }
 }
 
 /* 快捷入口:桌面 4 按钮(074de8e)/ 手机 2 按钮(今天 round-8) 双布局 */
