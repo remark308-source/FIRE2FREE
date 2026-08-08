@@ -828,6 +828,12 @@ function gotoRecord(type) {
   .stat-row--mob > :first-child {
     grid-column: 1 / -1 !important;
   }
+  /* 关键:覆盖 NGrid item-responsive 给各 NGi 算出的不等宽 inline span,
+     强制 4 张副卡各占 1 列 = 严格等宽 */
+  .stat-row--mob > :not(:first-child) {
+    grid-column: span 1 !important;
+    min-width: 0;
+  }
 
   /* 主卡(首张 = 净资产):xs 满宽,接近桌面样式 */
   .stat-row--mob > :first-child .stat-card :deep(.n-card__content) { padding: 14px !important; }
@@ -843,20 +849,17 @@ function gotoRecord(type) {
   .stat-row--mob > :first-child .stat-card .stat-icon { width: 28px; height: 28px; top: 10px; right: 10px; }
   .stat-row--mob > :first-child .stat-card .stat-foot { font-size: 10.5px; margin-top: 4px; }
 
-  /* 副卡(其余 4 张):xs 半宽,紧凑样式,数字/label/foot 全部 nowrap + ellipsis */
+  /* 副卡(其余 4 张):xs 半宽,紧凑样式;放开 nowrap 让脚注(主动/被动收入)自然换行 */
   .stat-row--mob > :not(:first-child) .stat-card :deep(.n-card__content) { padding: 12px 10px 10px !important; }
   .stat-row--mob > :not(:first-child) .stat-card :deep(.n-statistic-value__content) {
     font-size: 15px !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
     line-height: 1.2;
   }
   .stat-row--mob > :not(:first-child) .stat-card :deep(.n-statistic .n-statistic__label) {
     font-size: 10.5px !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
     margin-bottom: 2px !important;
     line-height: 1.2;
   }
@@ -864,11 +867,10 @@ function gotoRecord(type) {
   .stat-row--mob > :not(:first-child) .stat-card .stat-foot {
     display: block !important;
     font-size: 10px !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
     margin-top: 4px !important;
-    line-height: 1.2;
+    line-height: 1.4;
   }
 
   .section { padding: 12px !important; }

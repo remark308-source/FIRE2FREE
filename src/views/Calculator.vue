@@ -6,7 +6,7 @@
  */
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NCard, NSpace, NText, NForm, NFormItem, NSlider, NInputNumber, NTag, NRadioGroup, NRadioButton } from 'naive-ui'
+import { NCard, NSpace, NText, NForm, NFormItem, NSlider, NInputNumber, NTag } from 'naive-ui'
 import { useAggregate } from '@/composables/aggregate'
 import { useAppStore } from '@/stores/app'
 import { yearsToFire } from '@/finance'
@@ -40,13 +40,10 @@ const scenarios = computed(() => {
 
 // 财富自由推演:M1 支出覆盖(资产×收益率≥年支出) + M2 收入替代(被动≥主动)
 // 逐年迭代:资产 = 资产 + 年净流入 + 资产×收益率;主动收入按工资增速复利。
-// 失业情景:开始时资产扣除「失业月数×月支出」一次性冲击。
 // 工资年增率(以百分比计,如 5 表示 5%),wealthPlan 内部 /100 转小数
 const salaryGrowth = ref(0)
-const unemployment = ref(0) // 失业月数:0/6/12/18
 const wealthPlan = computed(() => {
   const r = app.profile.returnRates[app.profile.defaultReturnScenario] || 0.08
-  const monthlyExpense = fs.value.lastExpense
   const netMonthly = fs.value.netCashFlow
   const target = fs.value.target
   const ms = monthly.value
@@ -54,7 +51,7 @@ const wealthPlan = computed(() => {
   const activeAnnual = last12.reduce((s, m) => s + (m.activeIncome || 0), 0)
     || (ms.length ? ms[ms.length - 1].activeIncome * 12 : 0)
   const passive0 = fs.value.netAssets * r
-  let assets = Math.max(0, fs.value.netAssets - unemployment.value * monthlyExpense)
+  let assets = Math.max(0, fs.value.netAssets)
   let active = activeAnnual
   let m1 = null
   let m2 = null
@@ -136,15 +133,6 @@ const wealthPlan = computed(() => {
           <template #suffix>%</template>
         </NInputNumber>
       </div>
-      <div class="wp-ctrl">
-        <span class="wp-ctrl-label">{{ t('calculator.unemployment') }}</span>
-        <NRadioGroup v-model:value="unemployment" size="small">
-          <NRadioButton :value="0">{{ t('calculator.unempOff') }}</NRadioButton>
-          <NRadioButton :value="6">{{ t('calculator.unempMonths', { n: 6 }) }}</NRadioButton>
-          <NRadioButton :value="12">{{ t('calculator.unempMonths', { n: 12 }) }}</NRadioButton>
-          <NRadioButton :value="18">{{ t('calculator.unempMonths', { n: 18 }) }}</NRadioButton>
-        </NRadioGroup>
-      </div>
     </div>
     <div class="wp-note">
       {{ t('dashboard.activeIncome') }}: {{ fmtL(wealthPlan.activeAnnual, base) }} · {{ t('dashboard.annualPassive') }}: {{ fmtL(wealthPlan.passive0, base) }}
@@ -221,8 +209,8 @@ const wealthPlan = computed(() => {
 
 /* 财富自由推演:M1/M2 双格 + 控制区 */
 .wp-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 0;
   border: 1px solid rgba(125,125,140,0.22);
   border-radius: 10px;
@@ -230,11 +218,12 @@ const wealthPlan = computed(() => {
   background: rgba(125,125,140,0.04);
 }
 .wp-cell {
+  flex: 1 1 auto;
+  min-width: 180px;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 0;
 }
 .wp-cell:first-child { border-right: 1px solid rgba(125,125,140,0.15); }
 .wp-label { font-size: 13px; font-weight: 700; }
@@ -252,7 +241,7 @@ const wealthPlan = computed(() => {
 .wp-ctrl-val { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 34px; text-align: right; }
 .wp-note { margin-top: 12px; font-size: 11px; opacity: 0.7; }
 @media (max-width: 640px) {
-  .wp-grid { grid-template-columns: 1fr; }
+  .wp-grid { flex-direction: column; }
   .wp-cell:first-child { border-right: none; border-bottom: 1px solid rgba(125,125,140,0.15); }
 }
 

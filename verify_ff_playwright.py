@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""验证 dashboard 4 卡 / 手机 5 卡 + hero 等宽 + 编辑功能 + 工资增速输入
-- Dashboard 桌面/手机 × 浅/深:截图 + 测量 stat 卡数 + 财务自由度条 + hero 等宽
-- Calculator:截图验证 推演区块 + 工资增速输入框
+"""验证 dashboard 4 卡 / 手机 5 卡 + 副卡等宽 + hero 等宽 + 编辑功能 + 工资增速输入 + wp-grid 自适应(无失业)
+- Dashboard 桌面/手机 × 浅/深:截图 + 测量 stat 卡数 + 副卡等宽 + 财务自由度条 + hero 等宽
+- Calculator:截图验证 推演区块(flex 自适应, 无失业 radio) + 工资增速输入框
 - Income/Expense:截图验证 编辑按钮存在
 """
 import json, asyncio
@@ -11,7 +11,6 @@ from playwright.async_api import async_playwright
 
 BASE = 'http://127.0.0.1:8845/'
 
-# 生成 12 个月数据:主动 20000/月, 被动 12800/月(=64%), 支出 15000/月
 def build_seed():
     inc, exp = [], []
     d = date(2025, 8, 5)
@@ -56,8 +55,7 @@ async def shoot(pw, path, theme, w, h, name, hash_route='#/'):
       const ff = document.querySelector('.hero-ff, .ff-bar--card');
       const fill = document.querySelector('.ff-bar-fill');
       const txt = document.querySelector('.hero-ff-val, .n-statistic-value__content');
-      // 桌面可见卡数(.stat-row--desk 子项);手机可见卡数(.stat-row--mob 子项)
-      const deskCards = document.querySelectorAll('.stat-row--desk:not([style*="display: none"]) > *, .stat-row--desk > *').length;
+      const deskCards = document.querySelectorAll('.stat-row--desk > *').length;
       const mobCards = document.querySelectorAll('.stat-row--mob > *').length;
       const deskVisible = document.querySelector('.stat-row--desk') ? getComputedStyle(document.querySelector('.stat-row--desk')).display : 'none';
       const mobVisible = document.querySelector('.stat-row--mob') ? getComputedStyle(document.querySelector('.stat-row--mob')).display : 'none';
@@ -65,21 +63,26 @@ async def shoot(pw, path, theme, w, h, name, hash_route='#/'):
       const deskStats = !!document.querySelector('.hero--desktop .hero-stats');
       const deskFF = !!document.querySelector('.hero--desktop .hero-ff');
       const calcWP = !!document.querySelector('.wp-grid');
-      // Hero 等宽:hero-stats-top 和 hero-ff 的 width 应一致
+      const wpGrid = document.querySelector('.wp-grid');
+      const wpGridDisplay = wpGrid ? getComputedStyle(wpGrid).display : 'none';
+      const hasUnemp = !!document.querySelector('.wp-ctrl .n-radio-group') || !!document.body.innerText.includes('失业');
+      let mobSubWidths = [];
+      const mobGrid = document.querySelector('.stat-row--mob');
+      if (mobGrid) {
+        const subs = [...mobGrid.querySelectorAll(':scope > *')].slice(1);
+        mobSubWidths = subs.map(c => { const card = c.querySelector('.stat-card') || c; return Math.round(card.getBoundingClientRect().width); });
+      }
+      const mobSubEqual = mobSubWidths.length >= 4 ? (Math.abs(mobSubWidths[0]-mobSubWidths[1])<2 && Math.abs(mobSubWidths[2]-mobSubWidths[3])<2) : null;
       const top = document.querySelector('.hero--desktop .hero-stats-top');
       const ffRow = document.querySelector('.hero--desktop .hero-ff');
       const heroEqualWidth = top && ffRow ? Math.abs(top.getBoundingClientRect().width - ffRow.getBoundingClientRect().width) < 2 : null;
-      // 工资增速输入(NInputNumber)
       const salaryInput = !!document.querySelector('.wp-ctrl .n-input-number input');
-      // ff-bar--card 上没有"100"文本了
       const has100 = !!document.body.innerText.match(/(^|\\s)100(\\s|$)/) && !!document.querySelector('.ff-tick-label');
       return {
         ffText: txt ? txt.textContent.trim() : 'N/A',
         fillW: fill ? Math.round(parseFloat(getComputedStyle(fill).width)) : 'N/A',
-        statCardsDesk: deskCards,
-        statCardsMob: mobCards,
-        deskVisible, mobVisible,
-        deskHero, deskStats, deskFF, calcWP,
+        statCardsDesk: deskCards, statCardsMob: mobCards, deskVisible, mobVisible,
+        deskHero, deskStats, deskFF, calcWP, wpGridDisplay, hasUnemp, mobSubWidths, mobSubEqual,
         heroEqualWidth, salaryInput, has100
       };
     }''')
@@ -87,7 +90,6 @@ async def shoot(pw, path, theme, w, h, name, hash_route='#/'):
     await b.close()
 
 async def shoot_income(pw, theme, w, h, name):
-    """验证 Income 页的编辑按钮"""
     b = await pw.chromium.launch()
     ctx = await b.new_context(viewport={'width': w, 'height': h})
     p = await ctx.new_page()
